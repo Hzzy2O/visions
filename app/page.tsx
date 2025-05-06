@@ -1,65 +1,80 @@
-"use client"
+"use client";
 
-import { useRef, useEffect, useState } from "react"
-import Image from "next/image"
-import ContentCard from "@/components/content-card"
-import ContentFilter, { type FilterType, type SortType } from "@/components/content-filter"
-import { contents } from "@/data/mock-data"
-import { motion, AnimatePresence } from "framer-motion"
+import { useRef, useEffect, useState } from "react";
+import Image from "next/image";
+import ContentCard from "@/components/content-card";
+import ContentFilter, {
+  type FilterType,
+  type SortType,
+} from "@/components/content-filter";
+import { contents } from "@/data/mock-data";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all")
-  const [activeSort, setActiveSort] = useState<SortType>("latest")
-  const [filteredContents, setFilteredContents] = useState(contents)
-  const [imagesVisible, setImagesVisible] = useState(false)
-  const [articlesVisible, setArticlesVisible] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeSort, setActiveSort] = useState<SortType>("latest");
+  const [filteredContents, setFilteredContents] = useState(contents);
+  const [imagesVisible, setImagesVisible] = useState(false);
+  const [articlesVisible, setArticlesVisible] = useState(false);
 
-  const contentSectionRef = useRef<HTMLDivElement>(null)
+  const contentSectionRef = useRef<HTMLDivElement>(null);
 
   // Apply filters and sorting
   useEffect(() => {
-    let result = [...contents]
+    let result = [...contents];
 
     // Apply type filter
     if (activeFilter !== "all") {
-      result = result.filter((content) => content.type === activeFilter)
+      result = result.filter((content) => content.type === activeFilter);
     }
 
     // Apply sorting
     switch (activeSort) {
       case "latest":
-        result = result.sort((a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime())
-        break
+        result = result.sort(
+          (a, b) =>
+            new Date(b.createdAt || "").getTime() -
+            new Date(a.createdAt || "").getTime(),
+        );
+        break;
       case "oldest":
-        result = result.sort((a, b) => new Date(a.createdAt || "").getTime() - new Date(b.createdAt || "").getTime())
-        break
+        result = result.sort(
+          (a, b) =>
+            new Date(a.createdAt || "").getTime() -
+            new Date(b.createdAt || "").getTime(),
+        );
+        break;
       case "popular":
-        result = result.sort((a, b) => (b.likes || 0) - (a.likes || 0))
-        break
+        result = result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        break;
     }
 
-    setFilteredContents(result)
-  }, [activeFilter, activeSort])
+    setFilteredContents(result);
+  }, [activeFilter, activeSort]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.target === contentSectionRef.current && entry.isIntersecting) {
-            setImagesVisible(true)
-            setArticlesVisible(true)
+          if (
+            entry.target === contentSectionRef.current &&
+            entry.isIntersecting
+          ) {
+            setImagesVisible(true);
+            setArticlesVisible(true);
           }
-        })
+        });
       },
       { threshold: 0.1 },
-    )
+    );
 
-    if (contentSectionRef.current) observer.observe(contentSectionRef.current)
+    if (contentSectionRef.current) observer.observe(contentSectionRef.current);
 
     return () => {
-      if (contentSectionRef.current) observer.unobserve(contentSectionRef.current)
-    }
-  }, [])
+      if (contentSectionRef.current)
+        observer.unobserve(contentSectionRef.current);
+    };
+  }, []);
 
   return (
     <div className="container py-8 md:py-12">
@@ -69,11 +84,13 @@ export default function Home() {
           <div className="animate-fade-in">
             <h1 className="hero-title">SHARE YOUR VISIONS</h1>
             <p className="mt-4 text-xl">
-              Showcase your creative work on this platform, connecting with creators and enthusiasts worldwide
+              Showcase your creative work on this platform, connecting with
+              creators and enthusiasts worldwide
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <div className="rounded-full bg-white px-4 py-2 font-medium">149K+ Published Works</div>
-              <div className="rounded-full bg-white px-4 py-2 font-medium">100+ Monthly Featured Creators</div>
+              <div className="rounded-full bg-white/80 px-4 py-2 font-medium hover:bg-white transition-colors">
+                Discover Creators
+              </div>
             </div>
           </div>
           <div className="relative h-64 md:h-80 animate-fade-in-delayed">
@@ -122,12 +139,14 @@ export default function Home() {
               ))
             ) : (
               <div className="col-span-full py-12 text-center">
-                <p className="text-lg text-muted-foreground">No content found matching your filters.</p>
+                <p className="text-lg text-muted-foreground">
+                  No content found matching your filters.
+                </p>
               </div>
             )}
           </motion.div>
         </AnimatePresence>
       </section>
     </div>
-  )
+  );
 }

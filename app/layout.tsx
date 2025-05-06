@@ -1,23 +1,23 @@
-import type React from "react"
-import type { Metadata } from "next"
-import { Inter } from "next/font/google"
-import "./globals.css"
-import Header from "@/components/header"
-import { WalletProvider } from "@/context/wallet-context"
-import { ProfileProvider } from "@/context/profile-context"
+import type React from "react";
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Header from "@/components/header";
+import WalletProvider from "@/context/wallet-context";
+import { ProfileProvider } from "@/context/profile-context";
 
-const inter = Inter({ subsets: ["latin"] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Web3 Content Platform",
   description: "Share your creative visual content",
-    generator: 'v0.dev'
-}
+  generator: "v0.dev",
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
@@ -30,5 +30,5 @@ export default function RootLayout({
         </WalletProvider>
       </body>
     </html>
-  )
+  );
 }

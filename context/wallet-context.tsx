@@ -1,38 +1,27 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SuiClientProvider, WalletProvider } from "@mysten/dapp-kit";
+import { networkConfig, network } from "@/contracts";
+import "@mysten/dapp-kit/dist/index.css";
 
-type WalletContextType = {
-  connected: boolean
-  address: string | null
-  connect: () => void
-  disconnect: () => void
-}
+const queryClient = new QueryClient();
 
-const WalletContext = createContext<WalletContextType | undefined>(undefined)
-
-export function WalletProvider({ children }: { children: ReactNode }) {
-  const [connected, setConnected] = useState(false)
-  const [address, setAddress] = useState<string | null>(null)
-
-  const connect = () => {
-    // Simulate wallet connection
-    setConnected(true)
-    setAddress("0x1234...5678")
-  }
-
-  const disconnect = () => {
-    setConnected(false)
-    setAddress(null)
-  }
-
-  return <WalletContext.Provider value={{ connected, address, connect, disconnect }}>{children}</WalletContext.Provider>
+export default function Provider({ children }: { children: ReactNode }) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SuiClientProvider networks={networkConfig} defaultNetwork={network}>
+        <WalletProvider autoConnect={true}>{children}</WalletProvider>
+      </SuiClientProvider>
+    </QueryClientProvider>
+  );
 }
 
 export function useWallet() {
-  const context = useContext(WalletContext)
-  if (context === undefined) {
-    throw new Error("useWallet must be used within a WalletProvider")
-  }
-  return context
+  // const context = useContext()
+  // if (context === undefined) {
+  //   throw new Error("useWallet must be used within a WalletProvider")
+  // }
+  // return context
 }
