@@ -1,3 +1,4 @@
+
 "use client"
 
 import type React from "react"
@@ -32,9 +33,12 @@ export function useGSAPAnimation() {
 export function useScrollAnimation(
   elementRef: React.RefObject<HTMLElement>,
   options: {
-    animation?: gsap.TweenVars
-    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars
-    delay?: number
+    animation?: {
+      fromVars?: gsap.TweenVars;
+      toVars?: gsap.TweenVars;
+    };
+    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars;
+    delay?: number;
   } = {},
 ) {
   useEffect(() => {
@@ -57,7 +61,7 @@ export function useScrollAnimation(
       {
         opacity: 0,
         y: 50,
-        ...animation.fromVars,
+        ...(animation.fromVars || {}),
       },
       {
         opacity: 1,
@@ -65,7 +69,7 @@ export function useScrollAnimation(
         duration: 1,
         ease: "power3.out",
         delay,
-        ...animation.toVars,
+        ...(animation.toVars || {}),
       },
     )
 
@@ -79,9 +83,12 @@ export function useStaggerAnimation(
   containerRef: React.RefObject<HTMLElement>,
   childSelector: string,
   options: {
-    staggerAmount?: number
-    animation?: gsap.TweenVars
-    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars
+    staggerAmount?: number;
+    animation?: {
+      fromVars?: gsap.TweenVars;
+      toVars?: gsap.TweenVars;
+    };
+    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars;
   } = {},
 ) {
   useEffect(() => {
@@ -107,7 +114,7 @@ export function useStaggerAnimation(
       {
         opacity: 0,
         y: 50,
-        ...animation.fromVars,
+        ...(animation.fromVars || {}),
       },
       {
         opacity: 1,
@@ -115,7 +122,7 @@ export function useStaggerAnimation(
         duration: 0.8,
         stagger: staggerAmount,
         ease: "power3.out",
-        ...animation.toVars,
+        ...(animation.toVars || {}),
       },
     )
 
@@ -128,9 +135,9 @@ export function useStaggerAnimation(
 export function useParallaxEffect(
   elementRef: React.RefObject<HTMLElement>,
   options: {
-    speed?: number
-    direction?: "up" | "down" | "left" | "right"
-    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars
+    speed?: number;
+    direction?: "up" | "down" | "left" | "right";
+    scrollTrigger?: gsap.plugins.ScrollTriggerInstanceVars;
   } = {},
 ) {
   useEffect(() => {

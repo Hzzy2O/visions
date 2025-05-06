@@ -83,33 +83,24 @@ export default function Home() {
     };
   }, []);
 
-  // Apply staggered animation to content cards when they become visible
-  useEffect(() => {
-    if (isContentVisible && contentGridRef.current) {
-      useStaggerAnimation(contentGridRef, ".content-card-wrapper", {
-        staggerAmount: 0.1,
-        animation: {
-          fromVars: { opacity: 0, y: 50, scale: 0.9 },
-          toVars: { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
-        },
-        scrollTrigger: {
-          trigger: contentGridRef.current,
-          start: "top bottom-=100",
-          end: "bottom center",
-        }
-      });
+  // Use staggered animation for content cards
+  useStaggerAnimation(contentGridRef, ".content-card-wrapper", {
+    staggerAmount: 0.1,
+    animation: {
+      fromVars: { opacity: 0, y: 50, scale: 0.9 },
+      toVars: { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
+    },
+    scrollTrigger: {
+      start: "top bottom-=100",
+      end: "bottom center",
     }
-  }, [isContentVisible, filteredContents]);
+  });
 
   // Apply parallax effect to title
-  useEffect(() => {
-    if (titleRef.current) {
-      useParallaxEffect(titleRef, {
-        speed: 0.3,
-        direction: "up",
-      });
-    }
-  }, []);
+  useParallaxEffect(titleRef, {
+    speed: 0.3,
+    direction: "up",
+  });
 
   return (
     <div className="container py-8 md:py-12">
