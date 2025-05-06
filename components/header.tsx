@@ -1,14 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useWallet } from "@/context/wallet-context";
-import { Button } from "@/components/ui/button";
 import { Home, User, Upload, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { Connector } from "./ui/Connector";
 
 export default function Header() {
-  const { connected, address, connect, disconnect } = useWallet();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -47,6 +44,7 @@ export default function Header() {
 
         {/* Wallet Connection */}
         <div className="hidden md:block">
+          <Connector />
         </div>
 
         {/* Mobile Menu Button */}
