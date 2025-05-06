@@ -1,632 +1,425 @@
-import React, { useEffect, useState, useCallback } from "react";
-import { cn } from "@/lib/utils";
-import { createPortal } from "react-dom";
-import { useWallets, useConnectWallet } from "@mysten/dapp-kit";
+"use client";
 
+import React, { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
+import Image from "next/image";
+
+// Define wallet option type
 export interface WalletOption {
   id: string;
   name: string;
-  logo: string;
-  description: string;
+  description?: string;
+  icon?: string | React.ReactNode;
+  installed?: boolean;
+  downloadUrl?: string;
 }
 
-export interface ConnectWalletModalProps {
+interface ConnectModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onConnect: (walletId: string) => void;
+  className?: string;
+  title?: string;
   walletOptions?: WalletOption[];
-  /** Optional theme mode, defaults to 'light' */
-  themeMode?: "light" | "dark";
+  showRecentlyConnected?: boolean;
+  recentWallets?: string[];
+  logo?: string | React.ReactNode;
+  description?: string;
+  installedWallets?: string[];
+  renderWalletItem?: (wallet: WalletOption) => React.ReactNode;
+  qrCode?: {
+    uri: string;
+    imageUrl?: string;
+  };
 }
 
-type ModalView =
-  | "wallet-list"
-  | "what-is-wallet"
-  | "getting-started"
-  | "connection-status";
-
-const convertWalletToOption = (wallet: any): WalletOption => {
-  return {
-    id: wallet.name,
-    name: wallet.name,
-    logo: wallet.icon || "",
-    description: `Connect to ${wallet.name}`,
-  };
-};
-
-export const ConnectWalletModal = ({
+export default function ConnectModal({
   isOpen,
   onClose,
-  walletOptions,
-  themeMode = "light", // Default to light mode
-}: ConnectWalletModalProps) => {
-  const [mounted, setMounted] = useState(false);
-  const [currentView, setCurrentView] = useState<ModalView>("wallet-list");
+  onConnect,
+  className,
+  title = "Connect Wallet",
+  walletOptions = [],
+  showRecentlyConnected = true,
+  recentWallets = [],
+  logo,
+  description = "Choose how you want to connect. If you don't have a wallet, you can select a provider and create one.",
+  installedWallets = [],
+  renderWalletItem,
+  qrCode,
+}: ConnectModalProps) {
   const [connectingWallet, setConnectingWallet] = useState<WalletOption | null>(
-    null,
+    null
   );
-  const [hoverWallet, setHoverWallet] = useState<string | null>(null);
+  const [showQR, setShowQR] = useState(false);
+  const [showAllWallets, setShowAllWallets] = useState(false);
+  const modalRef = useRef<HTMLDivElement>(null);
 
-  const installedWallets = useWallets();
-  const {
-    mutate: connect,
-    isPending: isConnecting,
-    error: connectionError,
-  } = useConnectWallet();
-
+  // Close modal when clicking outside
   useEffect(() => {
-    setMounted(true);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen, onClose]);
+
+  // Close modal on ESC key
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("keydown", handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener("keydown", handleEscKey);
+    };
+  }, [isOpen, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
     } else {
-      if (document.body.style.overflow === "hidden") {
-        document.body.style.overflow = "";
-        const timer = setTimeout(() => {
-          setMounted(false);
-          if (document.body.style.overflow === "hidden") {
-            document.body.style.overflow = "";
-          }
-        }, 300);
-        return () => clearTimeout(timer);
-      }
+      document.body.style.overflow = "auto";
     }
+
     return () => {
-      setMounted(false);
-      if (document.body.style.overflow === "hidden") {
-        document.body.style.overflow = "";
-      }
+      document.body.style.overflow = "auto";
     };
   }, [isOpen]);
 
-  const resetModal = useCallback(() => {
-    setCurrentView("wallet-list");
-    setConnectingWallet(null);
-  }, []);
+  if (!isOpen) return null;
 
-  const handleClose = () => {
-    resetModal();
+  // Filter installed wallets
+  const installed = walletOptions.filter((wallet) =>
+    installedWallets.includes(wallet.id)
+  );
+  const notInstalled = walletOptions.filter(
+    (wallet) => !installedWallets.includes(wallet.id)
+  );
+
+  // Sort wallets with recent at the top
+  const sortedWallets = [
+    ...installed.filter((wallet) => recentWallets.includes(wallet.id)),
+    ...installed.filter((wallet) => !recentWallets.includes(wallet.id)),
+    ...notInstalled,
+  ];
+
+  // Display logic
+  const walletsToShow = showAllWallets
+    ? sortedWallets
+    : sortedWallets.slice(0, 5);
+
+  const connect = (walletId: string) => {
+    onConnect(walletId);
     onClose();
-  };
-
-  useEffect(() => {
-    if (connectingWallet && !isConnecting && !connectionError) {
-      console.log(`Successfully connected to ${connectingWallet.name}`);
-      const timer = setTimeout(() => {
-        handleClose();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [isConnecting, connectionError, connectingWallet, handleClose]);
-
-  if (!mounted) {
-    return null;
-  }
-
-  const availableWallets =
-    walletOptions ||
-    (installedWallets.length > 0
-      ? installedWallets.map((wallet) => convertWalletToOption(wallet))
-      : []);
-
-  const handleWalletSelect = async (walletOption: WalletOption) => {
-    setConnectingWallet(walletOption);
-    setCurrentView("connection-status");
-
-    const walletToConnect = installedWallets.find(
-      (w) => w.name === walletOption.name,
-    );
-
-    if (!walletToConnect) {
-      console.error(
-        `Could not find installed wallet adapter for ${walletOption.name}`,
-      );
-      setCurrentView("wallet-list");
-      setConnectingWallet(null);
-      return;
-    }
-
-    console.log(
-      `Attempting connect via useConnectWallet for ${walletToConnect.name}...`,
-    );
-    connect(
-      { wallet: walletToConnect },
-      {
-        onSuccess: () => {
-          console.log(
-            `useConnectWallet onSuccess callback for ${walletToConnect.name}`,
-          );
-        },
-        onError: (err) => {
-          console.error(
-            `useConnectWallet onError callback for ${walletToConnect.name}:`,
-            err,
-          );
-        },
-      },
-    );
   };
 
   const handleBack = () => {
     setConnectingWallet(null);
-    setCurrentView("wallet-list");
+    setShowQR(false);
   };
 
-  const handleRetry = () => {
+  // If connecting to a specific wallet
+  useEffect(() => {
     if (connectingWallet) {
-      const walletToConnect = installedWallets.find(
-        (w) => w.name === connectingWallet.name,
-      );
-      if (!walletToConnect) {
-        console.error(
-          `Could not find installed wallet adapter for retry: ${connectingWallet.name}`,
-        );
-        handleBack();
-        return;
-      }
-
-      console.log(`Retrying connection for ${walletToConnect.name}`);
-      // Reset the error state before retrying
-      setConnectingWallet(null);
       setTimeout(() => {
-        setConnectingWallet(connectingWallet);
-        connect(
-          { wallet: walletToConnect },
-          {
-            onSuccess: () =>
-              console.log(`Retry onSuccess for ${connectingWallet.name}`),
-            onError: (err) =>
-              console.error(`Retry onError for ${connectingWallet.name}:`, err),
-          },
-        );
+        if (installedWallets.includes(connectingWallet.id)) {
+          connect(connectingWallet.id);
+        }
       }, 100);
     }
-  };
+  }, [connectingWallet, installedWallets, connect, handleBack]);
 
   const defaultRenderWalletItem = (wallet: WalletOption) => (
     <div
       key={wallet.id}
       className={cn(
-        "flex cursor-pointer items-center rounded-lg p-3 transition-all duration-200",
-        "border border-transparent",
-        "hover:bg-blue/10 hover:border-blue/20 dark:hover:bg-blue/20 dark:hover:border-blue/30",
-        "relative overflow-hidden",
-        hoverWallet === wallet.id &&
-          "bg-gradient-to-r from-blue/5 to-lime/5 border-blue/30",
+        "flex items-center justify-between p-3 my-1 rounded-lg",
+        "transition-colors duration-200 cursor-pointer",
+        "hover:bg-gray-100 dark:hover:bg-gray-800",
+        installedWallets.includes(wallet.id)
+          ? "border border-lime/50 bg-lime/5"
+          : "border border-gray-200 dark:border-gray-700"
       )}
-      onClick={() => handleWalletSelect(wallet)}
-      onMouseEnter={() => setHoverWallet(wallet.id)}
-      onMouseLeave={() => setHoverWallet(null)}
+      onClick={() => setConnectingWallet(wallet)}
     >
-      {hoverWallet === wallet.id && (
-        <div className="absolute inset-0 bg-gradient-to-r from-blue/5 via-lime/5 to-blue/5 animate-pulse opacity-30" />
-      )}
-      <div
-        className={cn(
-          "flex h-12 w-12 items-center justify-center rounded-md z-10",
-          "bg-gradient-to-br from-blue/20 to-lime/20 dark:from-blue/30 dark:to-lime/30",
-          "shadow-sm",
-        )}
-      >
-        {wallet.logo ? (
-          <img src={wallet.logo} alt={wallet.name} className="h-7 w-7" />
-        ) : (
-          <div className="h-7 w-7 rounded-full bg-gradient-to-r from-blue to-lime" />
-        )}
-      </div>
-      <div className="ml-3 z-10">
-        <h4
-          className={cn(
-            "font-medium",
-            "text-gray-900 dark:text-white", // Light/Dark text color for wallet name
-            "flex items-center",
-          )}
-        >
-          {wallet.name}
-          {hoverWallet === wallet.id && (
-            <span className="ml-2 text-xs text-blue dark:text-lime bg-blue/10 dark:bg-blue/20 px-2 py-0.5 rounded-full">
-              Connect
-            </span>
-          )}
-        </h4>
-        <p
-          className={cn(
-            "text-xs",
-            "text-gray-500 dark:text-gray-400", // Light/Dark text color for wallet description
-          )}
-        >
-          {wallet.description}
-        </p>
-      </div>
-    </div>
-  );
-
-  const defaultRenderWhatIsWallet = () => (
-    <>
-      <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          What is a Wallet?
-        </h3>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-          A wallet is a secure digital tool for managing your blockchain assets
-          (like SUI or NFTs) and interacting with decentralized applications
-          (dApps).
-        </p>
-      </div>
-    </>
-  );
-
-  const defaultRenderGettingStarted = () => (
-    <>
-      <div className="p-6">
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          Getting Started
-        </h3>
-        <ol className="list-decimal list-inside text-sm text-gray-600 dark:text-gray-300 space-y-2">
-          <li>
-            <b>Choose & Install:</b> Select a compatible Sui wallet (e.g., from
-            the app store or official website) and install it.
-          </li>
-          <li>
-            <b>Create/Import:</b> Follow the wallet&apos;s instructions to
-            create a new account or import an existing one. Keep your recovery
-            phrase safe!
-          </li>
-          <li>
-            <b>Connect:</b> Return here, select your wallet from the list, and
-            approve the connection request in your wallet app.
-          </li>
-        </ol>
-      </div>
-    </>
-  );
-
-  const defaultRenderConnectionStatus = (wallet: WalletOption) => (
-    <div className="p-8 flex flex-col items-center justify-center min-h-[300px] relative z-10">
-      <div
-        className={cn(
-          "mb-6 flex h-20 w-20 items-center justify-center rounded-full",
-          "bg-gradient-to-br from-blue/20 to-lime/20 dark:from-blue/30 dark:to-lime/30",
-          "shadow-lg shadow-blue/10 dark:shadow-blue/20",
-        )}
-      >
-        {wallet.logo ? (
-          <img src={wallet.logo} alt={wallet.name} className="h-12 w-12" />
-        ) : (
-          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue to-lime" />
-        )}
-      </div>
-
-      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-        {wallet.name}
-      </h3>
-
-      {isConnecting && (
-        <>
-          <div className="my-8 relative">
-            <div className="h-10 w-10 animate-spin rounded-full border-2 border-blue border-t-lime"></div>
-            <div className="absolute inset-0 h-10 w-10 animate-ping opacity-30 rounded-full border-2 border-blue"></div>
-          </div>
-          <p className="text-sm font-medium text-blue dark:text-lime mb-2">
-            Connecting to {wallet.name}...
-          </p>
-          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800/70 px-3 py-2 rounded-md">
-            Please approve the connection request in {wallet.name}.
-          </p>
-        </>
-      )}
-
-      {!isConnecting &&
-        !connectionError &&
-        connectingWallet?.name === wallet.name && (
-          <>
-            <div className="my-8 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-lime to-green-500 shadow-lg shadow-lime/20">
-              <svg
-                className="h-6 w-6 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-lime mb-2">
-              Successfully connected to {wallet.name}!
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Closing...
-            </p>
-          </>
-        )}
-
-      {connectionError && connectingWallet?.name === wallet.name && (
-        <>
-          <div className="my-6 flex h-10 w-10 items-center justify-center rounded-full bg-red-500 shadow-lg shadow-red-500/20">
-            <svg
-              className="h-6 w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">
-            Failed to connect to {wallet.name}.
-          </p>
-          <p className="text-xs text-red-400 mb-4 max-w-xs text-center break-words bg-red-50 dark:bg-red-950/30 p-2 rounded-md">
-            {connectionError?.message || "An unknown error occurred."}
-          </p>
-          <button
-            className={cn(
-              "rounded-md px-6 py-2.5 text-white transition-all duration-200",
-              "bg-gradient-to-r from-blue to-lime hover:from-blue/90 hover:to-lime/90",
-              "dark:from-blue dark:to-lime dark:hover:from-blue/90 dark:hover:to-lime/90",
-              "shadow-md shadow-blue/20 hover:shadow-lg hover:shadow-lime/30",
-              "font-medium cursor-pointer relative z-20",
-              "hover:scale-105 active:scale-95",
-            )}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRetry();
-            }}
-            type="button"
-          >
-            <span className="flex items-center justify-center pointer-events-none">
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-              Retry
-            </span>
-          </button>
-        </>
-      )}
-    </div>
-  );
-
-  const renderInfoColumn = () => (
-    <div className="p-6 flex flex-col h-full bg-gradient-to-br from-blue/5 via-transparent to-lime/5 dark:from-blue/10 dark:via-transparent dark:to-lime/10">
-      <div className="mb-4 flex items-center">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue/20 dark:bg-blue/30 mr-3">
-          <svg
-            className="h-5 w-5 text-blue dark:text-lime"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      <div className="flex items-center">
+        {typeof wallet.icon === "string" ? (
+          <div className="w-10 h-10 mr-3 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <Image
+              src={wallet.icon}
+              alt={wallet.name}
+              width={30}
+              height={30}
+              className="object-contain"
             />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-blue dark:text-lime">
-          What is a Wallet?
-        </h3>
-      </div>
-      <div className="flex-grow relative">
-        <div className="absolute -left-1 top-0 bottom-0 w-0.5 bg-gradient-to-b from-blue/20 via-lime/20 to-transparent"></div>
-        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4 pl-3">
-          A wallet is a secure digital tool for managing your blockchain assets
-          (like SUI or NFTs) and interacting with decentralized applications
-          (dApps).
-        </p>
-        <div className="mt-4 rounded-lg border border-blue/20 dark:border-lime/20 p-3 bg-white/50 dark:bg-gray-800/50 shadow-sm">
-          <h4 className="text-xs font-medium text-blue dark:text-lime mb-2">
-            Benefits:
-          </h4>
-          <ul className="text-xs text-gray-600 dark:text-gray-300 space-y-1 pl-4 list-disc">
-            <li>Secure access to Web3 services</li>
-            <li>Full control of your digital assets</li>
-            <li>Proof of ownership on-chain</li>
-          </ul>
+          </div>
+        ) : (
+          <div className="w-10 h-10 mr-3 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            {wallet.icon}
+          </div>
+        )}
+        <div>
+          <div className="text-sm font-medium flex items-center">
+            {wallet.name}
+            {installedWallets.includes(wallet.id) && (
+              <span className="ml-2 text-xs bg-lime/20 text-lime px-1.5 py-0.5 rounded-full">
+                Installed
+              </span>
+            )}
+          </div>
+          {wallet.description && (
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {wallet.description}
+            </div>
+          )}
         </div>
       </div>
-      <div className="mt-auto pt-4 border-t border-blue/10 dark:border-lime/10">
-        <div className="flex items-center justify-center">
-          <span className="text-xs text-blue/60 dark:text-lime/60 mr-2">
-            Powered by
-          </span>
-          <span className="text-xs font-bold bg-gradient-to-r from-blue to-lime bg-clip-text text-transparent">
-            VISIONS
-          </span>
-        </div>
+      <div className="text-gray-400">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m9 18 6-6-6-6" />
+        </svg>
       </div>
     </div>
   );
 
-  const renderContent = () => {
-    switch (currentView) {
-      case "what-is-wallet":
-        return defaultRenderWhatIsWallet();
-      case "getting-started":
-        return defaultRenderGettingStarted();
-      case "connection-status":
-        return (
-          connectingWallet && defaultRenderConnectionStatus(connectingWallet)
-        );
-      case "wallet-list":
-      default:
-        return (
-          <>
-            <div
-              className={cn(
-                "flex items-center justify-between px-6 py-5 relative z-10",
-                "border-b border-blue/10 dark:border-lime/10",
-                "bg-gradient-to-r from-blue/5 to-transparent dark:from-blue/10 dark:to-transparent",
-              )}
-            >
-              <div className="flex items-center">
-                <div className="h-8 w-1 rounded-full bg-gradient-to-b from-blue to-lime mr-3"></div>
-                <h3 className="text-xl font-semibold bg-gradient-to-r from-blue to-lime bg-clip-text text-transparent">
-                  Connect Wallet
-                </h3>
-              </div>
-              <button
-                type="button"
-                className={cn(
-                  "rounded-full p-2 transition-all duration-200",
-                  "text-gray-500 hover:bg-red-50 hover:text-red-500", // Light mode hover
-                  "dark:text-gray-400 dark:hover:bg-red-900/20 dark:hover:text-red-400", // Dark mode hover
-                  "hover:rotate-90",
-                )}
-                onClick={handleClose}
-              >
-                <svg
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-                <span className="sr-only">Close</span>
-              </button>
-            </div>
-
-            <div className="flex min-h-[400px] relative z-10">
-              <div
-                className={cn(
-                  "w-3/5 border-r flex flex-col",
-                  "border-blue/10 dark:border-lime/10",
-                )}
-              >
-                <div className="p-6 flex-grow overflow-y-auto">
-                  <div className="mb-4 flex items-center">
-                    <div className="h-1 w-6 bg-blue mr-2 rounded-full"></div>
-                    <p className="text-sm text-blue dark:text-lime font-medium">
-                      Choose your wallet
-                    </p>
-                    <div className="h-1 w-6 bg-lime ml-2 rounded-full"></div>
-                  </div>
-                  <div className="space-y-2">
-                    {availableWallets.map((wallet) =>
-                      defaultRenderWalletItem(wallet),
-                    )}
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    "border-t px-6 py-3 mt-auto",
-                    "border-blue/10 dark:border-lime/10",
-                    "bg-gradient-to-b from-transparent to-blue/5 dark:from-transparent dark:to-blue/10",
-                  )}
-                >
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                    By connecting, you agree to the{" "}
-                    <span className="text-blue dark:text-lime">
-                      Terms & Privacy Policy
-                    </span>
-                    .
-                  </p>
-                </div>
-              </div>
-
-              <div
-                className={cn(
-                  "w-2/5",
-                  "bg-gradient-to-br from-blue/5 to-lime/5 dark:from-blue/10 dark:to-lime/10",
-                )}
-              >
-                {renderInfoColumn()}
-              </div>
-            </div>
-          </>
-        );
-    }
-  };
-
-  const modalContent = (
+  return (
     <div
       className={cn(
-        "fixed inset-0 z-[9999] flex items-center justify-center p-4 transition-opacity",
-        isOpen ? "opacity-100" : "opacity-0",
-        !isOpen && "pointer-events-none",
-        themeMode === "dark" ? "dark" : "", // Apply dark class based on themeMode
+        "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4",
+        className
       )}
     >
       <div
+        ref={modalRef}
         className={cn(
-          "absolute inset-0 backdrop-blur-sm transition-opacity",
-          "bg-black/30 dark:bg-black/50", // Adjusted backdrop opacity for light/dark
-          isOpen ? "opacity-100" : "opacity-0",
-        )}
-        onClick={handleClose}
-      />
-
-      <div
-        className={cn(
-          "relative w-full max-w-2xl overflow-hidden rounded-2xl shadow-xl transition-all",
-          "bg-white dark:bg-[#0A1428]", // Light/Dark background
-          "border border-blue/30 dark:border-blue/30", // Updated Light/Dark border
-          "bg-gradient-to-br from-white to-blue/5 dark:from-[#0A1428] dark:to-blue/10",
-          isOpen ? "scale-100 opacity-100" : "scale-95 opacity-0",
+          "bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden",
+          "w-full max-w-md max-h-[85vh] overflow-y-auto"
         )}
       >
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-lime/5 dark:bg-lime/10 blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 rounded-full bg-blue/5 dark:bg-blue/10 blur-3xl"></div>
-        </div>
-
-        {currentView !== "wallet-list" && !isConnecting && (
+        {/* Header */}
+        <div className="p-4 border-b dark:border-gray-800 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">
+            {connectingWallet ? connectingWallet.name : title}
+          </h3>
           <button
-            type="button"
-            className={cn(
-              "absolute top-4 left-4 rounded-full p-2 z-10",
-              "text-blue hover:bg-blue/10 hover:text-blue", // Light mode hover
-              "dark:text-lime dark:hover:bg-lime/10 dark:hover:text-lime", // Dark mode hover
-              "transition-all duration-200",
-            )}
-            onClick={handleBack}
+            onClick={connectingWallet ? handleBack : onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
           >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
+            {connectingWallet ? (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            <span className="sr-only">Back</span>
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            ) : (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M18 6 6 18" />
+                <path d="m6 6 12 12" />
+              </svg>
+            )}
           </button>
-        )}
+        </div>
 
-        {renderContent()}
+        {/* Content */}
+        <div className="p-4">
+          {!connectingWallet && !showQR && (
+            <>
+              {/* Logo and Description */}
+              <div className="text-center mb-6">
+                {logo && typeof logo === "string" ? (
+                  <div className="mx-auto w-16 h-16 mb-4">
+                    <img
+                      src={logo as string}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  logo && <div className="mx-auto mb-4">{logo}</div>
+                )}
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {description}
+                </p>
+              </div>
+
+              {/* Recent Wallets */}
+              {showRecentlyConnected && recentWallets.length > 0 && (
+                <div className="mb-4">
+                  <h4 className="text-sm font-medium mb-2 text-gray-500 dark:text-gray-400">
+                    Recently Connected
+                  </h4>
+                  {walletOptions
+                    .filter((wallet) => recentWallets.includes(wallet.id))
+                    .map((wallet) =>
+                      renderWalletItem
+                        ? renderWalletItem(wallet)
+                        : defaultRenderWalletItem(wallet)
+                    )}
+                </div>
+              )}
+
+              {/* Available Wallets */}
+              <div>
+                <h4 className="text-sm font-medium mb-2 text-gray-500 dark:text-gray-400">
+                  Available Wallets
+                </h4>
+                {walletsToShow.map((wallet) =>
+                  renderWalletItem
+                    ? renderWalletItem(wallet)
+                    : defaultRenderWalletItem(wallet)
+                )}
+              </div>
+
+              {/* Show more button */}
+              {sortedWallets.length > 5 && !showAllWallets && (
+                <button
+                  className="w-full mt-2 text-center text-sm text-blue hover:text-blue-600 dark:text-blue dark:hover:text-blue-400"
+                  onClick={() => setShowAllWallets(true)}
+                >
+                  Show more wallets
+                </button>
+              )}
+
+              {/* QR Code option */}
+              {qrCode && (
+                <div className="mt-4 pt-4 border-t dark:border-gray-800">
+                  <button
+                    className="w-full text-center py-2 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => setShowQR(true)}
+                  >
+                    <div className="flex items-center justify-center">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="mr-2"
+                      >
+                        <rect width="6" height="6" x="3" y="3" rx="1" />
+                        <rect width="6" height="6" x="15" y="3" rx="1" />
+                        <rect width="6" height="6" x="3" y="15" rx="1" />
+                        <path d="M15 15h1.5a1.5 1.5 0 0 1 1.5 1.5v1.5a1.5 1.5 0 0 1-1.5 1.5h-1.5a1.5 1.5 0 0 1-1.5-1.5v-1.5a1.5 1.5 0 0 1 1.5-1.5Z" />
+                      </svg>
+                      Connect with QR code
+                    </div>
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {connectingWallet && !showQR && (
+            <div className="text-center py-8">
+              <div className="w-16 h-16 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                {typeof connectingWallet.icon === "string" ? (
+                  <Image
+                    src={connectingWallet.icon}
+                    alt={connectingWallet.name}
+                    width={32}
+                    height={32}
+                    className="object-contain"
+                  />
+                ) : (
+                  connectingWallet.icon
+                )}
+              </div>
+              <h3 className="text-lg font-medium mb-2">
+                Opening {connectingWallet.name}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                {installedWallets.includes(connectingWallet.id)
+                  ? "Confirm connection in the extension"
+                  : "You need to install this wallet"}
+              </p>
+
+              {!installedWallets.includes(connectingWallet.id) &&
+                connectingWallet.downloadUrl && (
+                  <a
+                    href={connectingWallet.downloadUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block px-4 py-2 bg-blue text-white rounded-lg hover:bg-blue/90 transition-colors"
+                  >
+                    Install {connectingWallet.name}
+                  </a>
+                )}
+            </div>
+          )}
+
+          {showQR && qrCode && (
+            <div className="text-center py-4">
+              <div className="bg-white p-4 rounded-lg inline-block mb-4">
+                {qrCode.imageUrl ? (
+                  <img
+                    src={qrCode.imageUrl}
+                    alt="QR Code"
+                    className="w-64 h-64"
+                  />
+                ) : (
+                  <div className="w-64 h-64 bg-gray-100 flex items-center justify-center">
+                    <p className="text-sm text-gray-500">QR Code Placeholder</p>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                Scan with your phone's camera or wallet app to connect
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
-
-  return createPortal(modalContent, document.body);
-};
-
-export default ConnectWalletModal;
+}
