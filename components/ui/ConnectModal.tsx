@@ -150,7 +150,7 @@ export const ConnectWalletModal = ({
     setCurrentView("wallet-list");
   };
 
-  const handleRetry = useCallback(() => {
+  const handleRetry = () => {
     if (connectingWallet) {
       const walletToConnect = installedWallets.find(
         (w) => w.name === connectingWallet.name,
@@ -179,7 +179,7 @@ export const ConnectWalletModal = ({
         );
       }, 100);
     }
-  }, [connectingWallet, installedWallets, connect, handleBack]);
+  };
 
   const defaultRenderWalletItem = (wallet: WalletOption) => (
     <div
