@@ -29,7 +29,7 @@ export default function ContentCard({ content }: ContentCardProps) {
     <Link href={`/content/${id}`} className="block">
       <div
         ref={cardRef}
-        className="content-card group transition-all duration-300 hover:-translate-y-2 hover:shadow-lg"
+        className="content-card group transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue/10 dark:hover:shadow-blue/5"
       >
         <div className={`relative overflow-hidden ${locked ? "content-card-locked" : ""}`}>
           {type === "article" ? (

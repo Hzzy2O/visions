@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useRef, useEffect, useState } from "react";
@@ -9,15 +10,22 @@ import ContentFilter, {
 } from "@/components/content-filter";
 import { contents } from "@/data/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
+import { useGSAPAnimation, useStaggerAnimation, useParallaxEffect } from "@/hooks/use-gsap";
+import SectionDivider from "@/components/section-divider";
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [activeSort, setActiveSort] = useState<SortType>("latest");
   const [filteredContents, setFilteredContents] = useState(contents);
-  const [imagesVisible, setImagesVisible] = useState(false);
-  const [articlesVisible, setArticlesVisible] = useState(false);
+  const [isContentVisible, setIsContentVisible] = useState(false);
 
+  const heroSectionRef = useRef<HTMLDivElement>(null);
   const contentSectionRef = useRef<HTMLDivElement>(null);
+  const contentGridRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  // Apply GSAP animations
+  const gsapCtx = useGSAPAnimation();
 
   // Apply filters and sorting
   useEffect(() => {
@@ -52,34 +60,64 @@ export default function Home() {
     setFilteredContents(result);
   }, [activeFilter, activeSort]);
 
+  // Use GSAP for section animations
   useEffect(() => {
+    if (!contentSectionRef.current) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (
-            entry.target === contentSectionRef.current &&
-            entry.isIntersecting
-          ) {
-            setImagesVisible(true);
-            setArticlesVisible(true);
+          if (entry.isIntersecting) {
+            setIsContentVisible(true);
           }
         });
       },
-      { threshold: 0.1 },
+      { threshold: 0.1 }
     );
 
-    if (contentSectionRef.current) observer.observe(contentSectionRef.current);
-
+    observer.observe(contentSectionRef.current);
     return () => {
-      if (contentSectionRef.current)
+      if (contentSectionRef.current) {
         observer.unobserve(contentSectionRef.current);
+      }
     };
+  }, []);
+
+  // Apply staggered animation to content cards when they become visible
+  useEffect(() => {
+    if (isContentVisible && contentGridRef.current) {
+      useStaggerAnimation(contentGridRef, ".content-card-wrapper", {
+        staggerAmount: 0.1,
+        animation: {
+          fromVars: { opacity: 0, y: 50, scale: 0.9 },
+          toVars: { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "power3.out" }
+        },
+        scrollTrigger: {
+          trigger: contentGridRef.current,
+          start: "top bottom-=100",
+          end: "bottom center",
+        }
+      });
+    }
+  }, [isContentVisible, filteredContents]);
+
+  // Apply parallax effect to title
+  useEffect(() => {
+    if (titleRef.current) {
+      useParallaxEffect(titleRef, {
+        speed: 0.3,
+        direction: "up",
+      });
+    }
   }, []);
 
   return (
     <div className="container py-8 md:py-12">
       {/* Hero Section */}
-      <section className="mb-16 rounded-3xl bg-lime p-8 md:p-12 overflow-hidden">
+      <section 
+        ref={heroSectionRef} 
+        className="mb-16 rounded-3xl bg-lime p-8 md:p-12 overflow-hidden"
+      >
         <div className="grid gap-8 md:grid-cols-2 md:items-center">
           <div className="animate-fade-in">
             <h1 className="hero-title">SHARE YOUR VISIONS</h1>
@@ -106,9 +144,14 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Section Divider */}
+      <SectionDivider />
+
       {/* Content Section with Filters */}
-      <section className="mb-16" ref={contentSectionRef}>
-        <h2 className="section-title mb-8 inline-block">Explore Content</h2>
+      <section className="mb-16 relative" ref={contentSectionRef}>
+        <h2 ref={titleRef} className="section-title mb-8 inline-block bg-gradient-to-r from-blue to-lime bg-clip-text text-transparent">
+          Explore Content
+        </h2>
 
         <ContentFilter
           activeFilter={activeFilter}
@@ -124,15 +167,19 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+            ref={contentGridRef}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 content-grid"
           >
             {filteredContents.length > 0 ? (
               filteredContents.map((content, index) => (
                 <motion.div
                   key={content.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="content-card-wrapper"
+                  style={{
+                    transformOrigin: "center",
+                    transformStyle: "preserve-3d",
+                    willChange: "transform, opacity"
+                  }}
                 >
                   <ContentCard content={content} />
                 </motion.div>
