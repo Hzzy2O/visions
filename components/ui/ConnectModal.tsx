@@ -150,7 +150,7 @@ export const ConnectWalletModal = ({
     setCurrentView("wallet-list");
   };
 
-  const handleRetry = () => {
+  const handleRetry = useCallback(() => {
     if (connectingWallet) {
       const walletToConnect = installedWallets.find(
         (w) => w.name === connectingWallet.name,
@@ -164,17 +164,22 @@ export const ConnectWalletModal = ({
       }
 
       console.log(`Retrying connection for ${walletToConnect.name}`);
-      connect(
-        { wallet: walletToConnect },
-        {
-          onSuccess: () =>
-            console.log(`Retry onSuccess for ${connectingWallet.name}`),
-          onError: (err) =>
-            console.error(`Retry onError for ${connectingWallet.name}:`, err),
-        },
-      );
+      // Reset the error state before retrying
+      setConnectingWallet(null);
+      setTimeout(() => {
+        setConnectingWallet(connectingWallet);
+        connect(
+          { wallet: walletToConnect },
+          {
+            onSuccess: () =>
+              console.log(`Retry onSuccess for ${connectingWallet.name}`),
+            onError: (err) =>
+              console.error(`Retry onError for ${connectingWallet.name}:`, err),
+          },
+        );
+      }, 100);
     }
-  };
+  }, [connectingWallet, installedWallets, connect, handleBack]);
 
   const defaultRenderWalletItem = (wallet: WalletOption) => (
     <div
@@ -362,15 +367,21 @@ export const ConnectWalletModal = ({
           </p>
           <button
             className={cn(
-              "rounded-md px-6 py-2.5 text-white transition-all",
-              "bg-gradient-to-r from-blue to-blue hover:from-blue/90 hover:to-blue/80",
-              "dark:from-blue dark:to-blue/90 dark:hover:from-blue/80 dark:hover:to-blue/70",
-              "shadow-md shadow-blue/20 hover:shadow-lg hover:shadow-blue/30",
-              "font-medium",
+              "rounded-md px-6 py-2.5 text-white transition-all duration-200",
+              "bg-gradient-to-r from-blue to-lime hover:from-blue/90 hover:to-lime/90",
+              "dark:from-blue dark:to-lime dark:hover:from-blue/90 dark:hover:to-lime/90",
+              "shadow-md shadow-blue/20 hover:shadow-lg hover:shadow-lime/30",
+              "font-medium cursor-pointer",
+              "hover:scale-105 active:scale-95"
             )}
-            onClick={handleRetry}
+            onClick={() => handleRetry()}
           >
-            Retry
+            <span className="flex items-center justify-center">
+              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Retry
+            </span>
           </button>
         </>
       )}
