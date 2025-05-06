@@ -1,0 +1,54 @@
+React has detected a change in the order of Hooks called by ConnectWalletModal. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useState                   useState
+3. useState                   useState
+4. useState                   useState
+5. useContext                 useContext
+6. useRef                     useRef
+7. useMemo                    useMemo
+8. useSyncExternalStore       useSyncExternalStore
+9. useEffect                  useEffect
+10. useDebugValue             useDebugValue
+11. useDebugValue             useDebugValue
+12. useContext                useContext
+13. useRef                    useRef
+14. useMemo                   useMemo
+15. useSyncExternalStore      useSyncExternalStore
+16. useEffect                 useEffect
+17. useDebugValue             useDebugValue
+18. useDebugValue             useDebugValue
+19. useContext                useContext
+20. useRef                    useRef
+21. useMemo                   useMemo
+22. useSyncExternalStore      useSyncExternalStore
+23. useEffect                 useEffect
+24. useDebugValue             useDebugValue
+25. useDebugValue             useDebugValue
+26. useContext                useContext
+27. useState                  useState
+28. useEffect                 useEffect
+29. useCallback               useCallback
+30. useSyncExternalStore      useSyncExternalStore
+31. useCallback               useCallback
+32. useEffect                 useEffect
+33. useCallback               useCallback
+34. useEffect                 useEffect
+35. undefined                 useCallback
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+components/ui/ConnectModal.tsx (153:34) @ ConnectWalletModal
+
+
+  151 |   };
+  152 |
+> 153 |   const handleRetry = useCallback(() => {
+      |                                  ^
+  154 |     if (connectingWallet) {
+  155 |       const walletToConnect = installedWallets.find(
+  156 |         (w) => w.name === connectingWallet.name,
+Call Stack
+10
+
