@@ -150,18 +150,18 @@ export const ConnectWalletModal = ({
       key={wallet.id}
       className={cn(
         "flex cursor-pointer items-center rounded-lg p-2.5 transition-colors", 
-        "hover:bg-gray-100 dark:hover:bg-gray-800/50" 
+        "hover:bg-blue/10 dark:hover:bg-blue/20" 
       )}
       onClick={() => handleWalletSelect(wallet)}
     >
       <div className={cn(
         "flex h-10 w-10 items-center justify-center rounded-md",
-        "bg-gray-100 dark:bg-gray-800" // Simplified background for logo container
+        "bg-blue/10 dark:bg-blue/20" // Updated background for logo container
       )}>
         {wallet.logo ? (
           <img src={wallet.logo} alt={wallet.name} className="h-6 w-6" />
         ) : (
-          <div className="h-6 w-6 rounded-full bg-[#3890E3]" /> // Placeholder logo color (adjust if needed)
+          <div className="h-6 w-6 rounded-full bg-blue" /> // Updated placeholder logo color
         )}
       </div>
       <div className="ml-3">
@@ -205,12 +205,12 @@ export const ConnectWalletModal = ({
     <div className="p-6 flex flex-col items-center justify-center min-h-[300px]">
       <div className={cn(
         "mb-6 flex h-16 w-16 items-center justify-center rounded-full",
-        "bg-[#E1F3FF] dark:bg-[#1E3A8A]/20" // Light/Dark background for logo container
+        "bg-blue/20 dark:bg-blue/30" // Updated Light/Dark background for logo container
       )}>
         {wallet.logo ? (
           <img src={wallet.logo} alt={wallet.name} className="h-10 w-10" />
         ) : (
-          <div className="h-10 w-10 rounded-full bg-[#3890E3]" />
+          <div className="h-10 w-10 rounded-full bg-blue" />
         )}
       </div>
       
@@ -218,7 +218,7 @@ export const ConnectWalletModal = ({
       
       {isConnecting && (
         <>
-          <div className="my-6 h-8 w-8 animate-spin rounded-full border-2 border-[#3890E3] border-t-transparent"></div>
+          <div className="my-6 h-8 w-8 animate-spin rounded-full border-2 border-blue border-t-transparent"></div>
           <p className="text-sm text-gray-600 dark:text-gray-300">
             Connecting to {wallet.name}...
           </p>
@@ -257,8 +257,8 @@ export const ConnectWalletModal = ({
           <button 
             className={cn(
               "rounded-md px-4 py-2 text-white transition-colors",
-              "bg-[#3890E3] hover:bg-[#4A90E2]", // Use Sui blue for button
-              "dark:bg-[#3890E3] dark:hover:bg-[#4A90E2]"
+              "bg-blue hover:bg-blue/80", // Use our blue variable
+              "dark:bg-blue dark:hover:bg-blue/80"
             )}
             onClick={handleRetry}
           >
@@ -299,8 +299,8 @@ export const ConnectWalletModal = ({
                 type="button"
                 className={cn(
                   "rounded-full p-1", 
-                  "text-gray-500 hover:bg-gray-100 hover:text-gray-700", // Light mode hover
-                  "dark:text-gray-400 dark:hover:bg-[#1E3A8A]/10 dark:hover:text-white" // Dark mode hover
+                  "text-gray-500 hover:bg-blue/10 hover:text-blue", // Light mode hover
+                  "dark:text-gray-400 dark:hover:bg-blue/20 dark:hover:text-lime" // Dark mode hover
                 )}
                 onClick={handleClose}
               >
@@ -334,7 +334,7 @@ export const ConnectWalletModal = ({
 
               <div className={cn(
                 "w-2/5",
-                "bg-gray-50 dark:bg-[#0A1428]/50" // Light/Dark background for info column
+                "bg-lime/10 dark:bg-blue/10" // Updated Light/Dark background for info column
                 )}>
                 {renderInfoColumn()}
               </div>
@@ -366,7 +366,7 @@ export const ConnectWalletModal = ({
         className={cn(
           'relative w-full max-w-2xl overflow-hidden rounded-2xl shadow-xl transition-all',
           'bg-white dark:bg-[#0A1428]', // Light/Dark background
-          'border border-gray-200 dark:border-[#1E3A8A]/30', // Light/Dark border
+          'border border-blue dark:border-blue/30', // Updated Light/Dark border
           isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         )}
       >

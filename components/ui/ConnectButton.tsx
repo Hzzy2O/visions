@@ -115,11 +115,11 @@ export const ConnectButton = ({
           "inline-flex items-center justify-center rounded-md font-medium transition-colors",
           // Variant styles
           variant === "primary" &&
-            "bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700",
+            "bg-blue text-white hover:bg-blue/80 dark:bg-blue dark:text-white dark:hover:bg-blue/80",
           variant === "secondary" &&
-            "bg-gray-50 text-gray-700 hover:bg-gray-100 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800",
+            "bg-lime text-gray-800 hover:bg-lime/80 dark:bg-lime dark:text-gray-800 dark:hover:bg-lime/80",
           variant === "outline" &&
-            "border border-gray-300 text-gray-700 bg-transparent hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800/50",
+            "border border-blue text-blue bg-transparent hover:bg-blue/10 dark:border-blue dark:text-lime dark:hover:bg-blue/10",
           // Size styles
           size === "sm" && "h-8 px-3 text-sm",
           size === "md" && "h-10 px-4 text-base",
