@@ -145,10 +145,11 @@ export const ConnectWalletModal = ({
     );
   };
 
-  const handleBack = () => {
+  // Define handleBack before it's used in handleRetry
+  const handleBack = useCallback(() => {
     setConnectingWallet(null);
     setCurrentView("wallet-list");
-  };
+  }, []);
 
   const handleRetry = useCallback(() => {
     if (connectingWallet) {
