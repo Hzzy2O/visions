@@ -280,7 +280,7 @@ export const ConnectWalletModal = ({
   );
 
   const defaultRenderConnectionStatus = (wallet: WalletOption) => (
-    <div className="p-8 flex flex-col items-center justify-center min-h-[300px]">
+    <div className="p-8 flex flex-col items-center justify-center min-h-[300px] relative z-10">
       <div
         className={cn(
           "mb-6 flex h-20 w-20 items-center justify-center rounded-full",
@@ -371,12 +371,16 @@ export const ConnectWalletModal = ({
               "bg-gradient-to-r from-blue to-lime hover:from-blue/90 hover:to-lime/90",
               "dark:from-blue dark:to-lime dark:hover:from-blue/90 dark:hover:to-lime/90",
               "shadow-md shadow-blue/20 hover:shadow-lg hover:shadow-lime/30",
-              "font-medium cursor-pointer",
+              "font-medium cursor-pointer relative z-20",
               "hover:scale-105 active:scale-95"
             )}
-            onClick={() => handleRetry()}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRetry();
+            }}
+            type="button"
           >
-            <span className="flex items-center justify-center">
+            <span className="flex items-center justify-center pointer-events-none">
               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
