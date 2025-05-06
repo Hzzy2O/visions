@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 // Import local components being wrapped
 import { ConnectButton } from "./ConnectButton";
-import { ConnectWalletModal } from "./ConnectModal";
+import ConnectWalletModal from "./ConnectModal";
 // Import dapp-kit hooks for state management
 import {
   useDisconnectWallet,
