@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import FilterButton from "./filter-button"
-import { ChevronDown, Search } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 
 export type FilterType = "all" | "image" | "article"
 export type SortType = "latest" | "popular" | "oldest"
@@ -14,8 +14,6 @@ type ContentFilterProps = {
   activeSort?: SortType
   onSortChange?: (sort: SortType) => void
   showSortOptions?: boolean
-  searchQuery?: string
-  onSearchChange?: (query: string) => void
 }
 
 export default function ContentFilter({
@@ -24,8 +22,6 @@ export default function ContentFilter({
   activeSort = "latest",
   onSortChange,
   showSortOptions = true,
-  searchQuery = "",
-  onSearchChange,
 }: ContentFilterProps) {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
 
@@ -43,39 +39,8 @@ export default function ContentFilter({
   }
 
   return (
-    <div className="mb-8 flex flex-col gap-4 border-b sm:gap-6">
-      {/* Search Bar */}
-      {onSearchChange && (
-        <div className="relative w-full">
-          <div className="relative flex items-center">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search content..."
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              className="w-full rounded-lg border border-input bg-white px-10 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue focus:ring-offset-2"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => onSearchChange("")}
-                className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground"
-              >
-                <span className="sr-only">Clear search</span>
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-      
-      <div className="flex flex-col items-center justify-between gap-4 sm:flex-row w-full">
-        <div className="flex space-x-2">
+    <div className="mb-8 flex flex-col items-center justify-between gap-4 border-b sm:flex-row">
+      <div className="flex space-x-2">
         <FilterButton active={activeFilter === "all"} onClick={() => onFilterChange("all")}>
           All Content
         </FilterButton>
@@ -127,7 +92,6 @@ export default function ContentFilter({
           </AnimatePresence>
         </div>
       )}
-      </div>
     </div>
   )
 }

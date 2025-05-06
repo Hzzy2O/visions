@@ -16,7 +16,6 @@ import SectionDivider from "@/components/section-divider";
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [activeSort, setActiveSort] = useState<SortType>("latest");
-  const [searchQuery, setSearchQuery] = useState("");
   const [filteredContents, setFilteredContents] = useState(contents);
   const [isContentVisible, setIsContentVisible] = useState(false);
 
@@ -28,19 +27,9 @@ export default function Home() {
   // Apply GSAP animations
   const gsapCtx = useGSAPAnimation();
 
-  // Apply filters, search, and sorting
+  // Apply filters and sorting
   useEffect(() => {
     let result = [...contents];
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      result = result.filter((content) => 
-        content.title.toLowerCase().includes(query) || 
-        (content.description && content.description.toLowerCase().includes(query)) ||
-        content.creator.name.toLowerCase().includes(query)
-      );
-    }
 
     // Apply type filter
     if (activeFilter !== "all") {
@@ -69,7 +58,7 @@ export default function Home() {
     }
 
     setFilteredContents(result);
-  }, [activeFilter, activeSort, searchQuery]);
+  }, [activeFilter, activeSort]);
 
   // Use GSAP for section animations
   useEffect(() => {
@@ -160,19 +149,11 @@ export default function Home() {
           onFilterChange={setActiveFilter}
           activeSort={activeSort}
           onSortChange={setActiveSort}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
         />
 
-        {searchQuery && (
-          <div className="mb-4 text-sm text-muted-foreground">
-            Found {filteredContents.length} {filteredContents.length === 1 ? 'result' : 'results'} for "{searchQuery}"
-          </div>
-        )}
-        
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${activeFilter}-${activeSort}-${searchQuery}`}
+            key={activeFilter + activeSort}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
