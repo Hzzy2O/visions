@@ -145,13 +145,12 @@ export const ConnectWalletModal = ({
     );
   };
 
-  // Define handleBack before it's used in handleRetry
-  const handleBack = useCallback(() => {
+  const handleBack = () => {
     setConnectingWallet(null);
     setCurrentView("wallet-list");
-  }, []);
+  };
 
-  const handleRetry = useCallback(() => {
+  const handleRetry = () => {
     if (connectingWallet) {
       const walletToConnect = installedWallets.find(
         (w) => w.name === connectingWallet.name,
@@ -180,7 +179,7 @@ export const ConnectWalletModal = ({
         );
       }, 100);
     }
-  }, [connectingWallet, installedWallets, connect, handleBack]);
+  };
 
   const defaultRenderWalletItem = (wallet: WalletOption) => (
     <div
@@ -373,7 +372,7 @@ export const ConnectWalletModal = ({
               "dark:from-blue dark:to-lime dark:hover:from-blue/90 dark:hover:to-lime/90",
               "shadow-md shadow-blue/20 hover:shadow-lg hover:shadow-lime/30",
               "font-medium cursor-pointer relative z-20",
-              "hover:scale-105 active:scale-95"
+              "hover:scale-105 active:scale-95",
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -382,8 +381,18 @@ export const ConnectWalletModal = ({
             type="button"
           >
             <span className="flex items-center justify-center pointer-events-none">
-              <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              <svg
+                className="w-4 h-4 mr-2"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
               </svg>
               Retry
             </span>
