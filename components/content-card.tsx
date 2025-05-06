@@ -26,14 +26,14 @@ export default function ContentCard({ content }: ContentCardProps) {
   }
 
   return (
-    <Link href={`/content/${id}`} className="block">
+    <Link href={`/content/${id}`} className="block h-full">
       <div
         ref={cardRef}
-        className="content-card group transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue/10 dark:hover:shadow-blue/5"
+        className="content-card group h-full flex flex-col transition-all duration-500 hover:-translate-y-2 hover:shadow-xl hover:shadow-blue/10 dark:hover:shadow-blue/5 border border-border rounded-lg overflow-hidden"
       >
-        <div className={`relative overflow-hidden ${locked ? "content-card-locked" : ""}`}>
+        <div className={`relative overflow-hidden ${locked ? "content-card-locked" : ""} flex-shrink-0`} style={{ height: "240px" }}>
           {type === "article" ? (
-            <div className="relative aspect-square w-full bg-gradient-to-br from-blue/10 to-blue/5 p-6">
+            <div className="relative h-full w-full bg-gradient-to-br from-blue/10 to-blue/5 p-6">
               <div className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
                 <div className="flex items-center gap-1">
                   <FileText className="h-4 w-4" />
@@ -58,9 +58,8 @@ export default function ContentCard({ content }: ContentCardProps) {
               <Image
                 src={thumbnail || "/placeholder.svg"}
                 alt={title}
-                width={400}
-                height={400}
-                className="content-card-image transition-transform duration-500 group-hover:scale-105"
+                fill
+                className="content-card-image object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute left-2 top-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white">
                 <div className="flex items-center gap-1">
@@ -76,9 +75,9 @@ export default function ContentCard({ content }: ContentCardProps) {
             </>
           )}
         </div>
-        <div className="content-card-content p-4">
+        <div className="content-card-content p-4 flex-grow flex flex-col">
           {type !== "article" && <h3 className="line-clamp-1 text-lg font-bold">{title}</h3>}
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-auto flex items-center gap-2 pt-2">
             <Image
               src={creator.avatar || "/placeholder.svg"}
               alt={creator.name}
