@@ -35,8 +35,28 @@ export default function ContentPage({ params }: { params: { id: string } }) {
 
   if (!content) {
     return (
-      <div className="container flex h-[60vh] items-center justify-center py-8 md:py-12">
-        <p className="text-xl">Loading...</p>
+      <div className="container py-8 md:py-12">
+        <div className="mb-8">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="skeleton h-16 w-16 rounded-full"></div>
+            <div>
+              <div className="skeleton h-6 w-48 mb-2"></div>
+              <div className="skeleton h-4 w-24"></div>
+            </div>
+          </div>
+          <div className="skeleton h-8 w-64 mb-2"></div>
+          <div className="skeleton h-4 w-full max-w-2xl mb-2"></div>
+          <div className="skeleton h-4 w-full max-w-xl"></div>
+        </div>
+        
+        <div className="mt-8">
+          <div className="skeleton h-[400px] w-full rounded-lg mb-8"></div>
+          <div className="space-y-4">
+            <div className="skeleton h-4 w-full"></div>
+            <div className="skeleton h-4 w-full"></div>
+            <div className="skeleton h-4 w-3/4"></div>
+          </div>
+        </div>
       </div>
     )
   }

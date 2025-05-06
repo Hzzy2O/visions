@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, Suspense, lazy } from "react";
 import Image from "next/image";
-import ContentCard from "@/components/content-card";
+import dynamic from "next/dynamic";
 import ContentFilter, {
   type FilterType,
   type SortType,
@@ -12,6 +12,13 @@ import { contents } from "@/data/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGSAPAnimation, useStaggerAnimation, useParallaxEffect } from "@/hooks/use-gsap";
 import SectionDivider from "@/components/section-divider";
+import ContentCardSkeleton from "@/components/content-card-skeleton";
+
+// Dynamically import the ContentCard component
+const ContentCard = dynamic(() => import("@/components/content-card"), {
+  loading: () => <ContentCardSkeleton />,
+  ssr: false
+});
 
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -162,19 +169,23 @@ export default function Home() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 content-grid"
           >
             {filteredContents.length > 0 ? (
-              filteredContents.map((content, index) => (
-                <motion.div
-                  key={content.id}
-                  className="content-card-wrapper"
-                  style={{
-                    transformOrigin: "center",
-                    transformStyle: "preserve-3d",
-                    willChange: "transform, opacity"
-                  }}
-                >
-                  <ContentCard content={content} />
-                </motion.div>
-              ))
+              <>
+                {filteredContents.map((content, index) => (
+                  <motion.div
+                    key={content.id}
+                    className="content-card-wrapper"
+                    style={{
+                      transformOrigin: "center",
+                      transformStyle: "preserve-3d",
+                      willChange: "transform, opacity"
+                    }}
+                  >
+                    <Suspense fallback={<ContentCardSkeleton />}>
+                      <ContentCard content={content} />
+                    </Suspense>
+                  </motion.div>
+                ))}
+              </>
             ) : (
               <div className="col-span-full py-12 text-center">
                 <p className="text-lg text-muted-foreground">

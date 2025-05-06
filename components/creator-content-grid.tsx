@@ -1,5 +1,16 @@
-import ContentCard from "@/components/content-card"
+
+"use client"
+
+import { Suspense, lazy } from "react"
+import dynamic from "next/dynamic"
+import ContentCardSkeleton from "@/components/content-card-skeleton"
 import type { Content } from "@/types/content"
+
+// Dynamically import the ContentCard component
+const ContentCard = dynamic(() => import("@/components/content-card"), {
+  loading: () => <ContentCardSkeleton />,
+  ssr: false
+})
 
 type CreatorContentGridProps = {
   contents: Content[]
@@ -21,7 +32,9 @@ export default function CreatorContentGrid({
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {contents.map((content) => (
-        <ContentCard key={content.id} content={content} />
+        <Suspense key={content.id} fallback={<ContentCardSkeleton />}>
+          <ContentCard content={content} />
+        </Suspense>
       ))}
     </div>
   )
