@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
+import { AddressDisplay } from "./AddressDisplay";
 
 export interface ConnectButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -81,27 +82,37 @@ export const ConnectButton = ({
   // Button inner content
   const buttonContent = isConnected ? (
     <div className="flex items-center">
-      {avatarUrl ? (
-        <img
-          src={avatarUrl}
-          alt="Wallet Avatar"
-          className="w-5 h-5 rounded-full mr-2 object-cover"
+      {showAddress && walletAddress ? (
+        <AddressDisplay 
+          address={walletAddress}
+          textDisplayMode="short"
+          showCopyButton={false}
+          showExplorerLink={false}
+          showAvatar={!avatarUrl && !walletIcon}
+          size="sm"
+          className="bg-transparent shadow-none px-0"
         />
-      ) : walletIcon ? (
-        <span className="mr-2">{walletIcon}</span>
       ) : (
-        <span className="mr-1.5 h-2 w-2 rounded-full bg-green-500" />
+        <div className="flex items-center">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="Wallet Avatar"
+              className="w-5 h-5 rounded-full mr-2 object-cover"
+            />
+          ) : walletIcon ? (
+            <span className="mr-2">{walletIcon}</span>
+          ) : (
+            <span className="mr-1.5 h-2 w-2 rounded-full bg-green-500" />
+          )}
+          <span>{walletName || connectedText}</span>
+        </div>
       )}
-      <div className="flex items-center">
-        {showAddress && walletAddress
-          ? formatAddress(walletAddress)
-          : walletName || connectedText}
-        {showBalance && balance && (
-          <span className="ml-2 text-xs opacity-80 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-            {formatBalance(balance.amount, balance.symbol)}
-          </span>
-        )}
-      </div>
+      {showBalance && balance && (
+        <span className="ml-2 text-xs opacity-80 bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full">
+          {formatBalance(balance.amount, balance.symbol)}
+        </span>
+      )}
     </div>
   ) : (
     text
@@ -182,9 +193,17 @@ export const ConnectButton = ({
                 <p className="text-sm dark:text-white text-gray-800 font-medium">
                   {walletName || "My Wallet"}
                 </p>
-                <p className="text-xs dark:text-gray-400 text-gray-500 mb-1">
-                  {formatAddress(walletAddress)}
-                </p>
+                {walletAddress && (
+                  <AddressDisplay
+                    address={walletAddress}
+                    textDisplayMode="medium"
+                    showCopyButton={false}
+                    showExplorerLink={false}
+                    showAvatar={false}
+                    size="sm"
+                    className="bg-transparent shadow-none p-0 h-auto mb-1"
+                  />
+                )}
                 {balance && (
                   <div className="flex items-center text-xs dark:text-gray-300 text-gray-600 font-medium mt-1 bg-gray-100 dark:bg-gray-700/70 px-2 py-0.5 rounded-full max-w-fit">
                     {formatBalance(balance.amount, balance.symbol)}
