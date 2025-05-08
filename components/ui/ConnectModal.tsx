@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -105,6 +106,20 @@ export default function ConnectModal({
     };
   }, [isOpen]);
 
+  // Handle wallet connection and any side effects
+  useEffect(() => {
+    // Handle connecting to a specific wallet
+    if (connectingWallet) {
+      const timer = setTimeout(() => {
+        if (installedWallets.includes(connectingWallet.id)) {
+          connect(connectingWallet.id);
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [connectingWallet, installedWallets]);
+
   if (!isOpen) return null;
 
   // Filter installed wallets
@@ -136,17 +151,6 @@ export default function ConnectModal({
     setConnectingWallet(null);
     setShowQR(false);
   };
-
-  // If connecting to a specific wallet
-  useEffect(() => {
-    if (connectingWallet) {
-      setTimeout(() => {
-        if (installedWallets.includes(connectingWallet.id)) {
-          connect(connectingWallet.id);
-        }
-      }, 100);
-    }
-  }, [connectingWallet, installedWallets, connect, handleBack]);
 
   const defaultRenderWalletItem = (wallet: WalletOption) => (
     <div
