@@ -1,75 +1,76 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Upload, X, FileText, ImageIcon } from "lucide-react"
-import { useWallet } from "@/context/wallet-context"
-import type { ContentType } from "@/types/content"
+import { useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Upload, X, FileText, ImageIcon } from "lucide-react";
+import { useWallet } from "@/context/wallet-context";
+import type { ContentType } from "@/types/content";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 
 export default function PublishPage() {
-  const router = useRouter()
-  const { connected } = useWallet()
-  const [contentType, setContentType] = useState<ContentType>("image")
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [price, setPrice] = useState("")
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
-  const [articleContent, setArticleContent] = useState("")
-  const [videoUrl, setVideoUrl] = useState("")
-  const [audioUrl, setAudioUrl] = useState("")
-  const [isPublishing, setIsPublishing] = useState(false)
+  const router = useRouter();
+  const account = useCurrentAccount();
+  const [contentType, setContentType] = useState<ContentType>("image");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [articleContent, setArticleContent] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+    const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (event) => {
-        setSelectedImage(event.target?.result as string)
-      }
-      reader.readAsDataURL(file)
+        setSelectedImage(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
     }
-  }
+  };
 
   const handleRemoveImage = () => {
-    setSelectedImage(null)
-  }
+    setSelectedImage(null);
+  };
 
   const handlePublish = () => {
-    if (!connected) {
-      alert("Please connect your wallet first")
-      return
+    if (!account?.address) {
+      alert("Please connect your wallet first");
+      return;
     }
 
     if (!title || !description || !price) {
-      alert("Please fill in all required fields")
-      return
+      alert("Please fill in all required fields");
+      return;
     }
 
     // Validate required fields based on content type
     if (contentType === "image" && !selectedImage) {
-      alert("Please upload an image")
-      return
+      alert("Please upload an image");
+      return;
     } else if (contentType === "article" && !articleContent) {
-      alert("Please enter article content")
-      return
+      alert("Please enter article content");
+      return;
     }
 
-    setIsPublishing(true)
+    setIsPublishing(true);
 
     // Simulate publishing process
     setTimeout(() => {
-      setIsPublishing(false)
-      router.push("/profile")
-    }, 2000)
-  }
+      setIsPublishing(false);
+      router.push("/profile");
+    }, 2000);
+  };
 
   const renderContentTypeFields = () => {
     switch (contentType) {
@@ -79,7 +80,12 @@ export default function PublishPage() {
             <Label>Upload Image</Label>
             {selectedImage ? (
               <div className="relative aspect-video w-full overflow-hidden rounded-lg">
-                <Image src={selectedImage || "/placeholder.svg"} alt="Selected image" fill className="object-cover" />
+                <Image
+                  src={selectedImage || "/placeholder.svg"}
+                  alt="Selected image"
+                  fill
+                  className="object-cover"
+                />
                 <Button
                   variant="destructive"
                   size="icon"
@@ -92,11 +98,21 @@ export default function PublishPage() {
             ) : (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 p-12">
                 <Upload className="mb-4 h-12 w-12 text-muted-foreground" />
-                <p className="mb-2 text-sm text-muted-foreground">Drag and drop image or click to upload</p>
-                <Input id="image-upload" type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                <p className="mb-2 text-sm text-muted-foreground">
+                  Drag and drop image or click to upload
+                </p>
+                <Input
+                  id="image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
                 <Button
                   variant="outline"
-                  onClick={() => document.getElementById("image-upload")?.click()}
+                  onClick={() =>
+                    document.getElementById("image-upload")?.click()
+                  }
                   className="mt-2"
                 >
                   Select Image
@@ -104,7 +120,7 @@ export default function PublishPage() {
               </div>
             )}
           </div>
-        )
+        );
       case "article":
         return (
           <div className="space-y-2">
@@ -116,13 +132,15 @@ export default function PublishPage() {
               value={articleContent}
               onChange={(e) => setArticleContent(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Markdown format supported</p>
+            <p className="text-xs text-muted-foreground">
+              Markdown format supported
+            </p>
           </div>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   return (
     <div className="container max-w-3xl py-8 md:py-12">
@@ -139,14 +157,20 @@ export default function PublishPage() {
           >
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="image" id="image" />
-              <Label htmlFor="image" className="flex items-center gap-1 font-normal">
+              <Label
+                htmlFor="image"
+                className="flex items-center gap-1 font-normal"
+              >
                 <ImageIcon className="h-4 w-4" />
                 Image
               </Label>
             </div>
             <div className="flex items-center space-x-2">
               <RadioGroupItem value="article" id="article" />
-              <Label htmlFor="article" className="flex items-center gap-1 font-normal">
+              <Label
+                htmlFor="article"
+                className="flex items-center gap-1 font-normal"
+              >
                 <FileText className="h-4 w-4" />
                 Article
               </Label>
@@ -195,10 +219,14 @@ export default function PublishPage() {
         {renderContentTypeFields()}
 
         {/* Publish Button */}
-        <Button className="w-full bg-blue text-white hover:bg-blue/90" onClick={handlePublish} disabled={isPublishing}>
+        <Button
+          className="w-full bg-blue text-white hover:bg-blue/90"
+          onClick={handlePublish}
+          disabled={isPublishing}
+        >
           {isPublishing ? "Publishing..." : "Publish Content"}
         </Button>
       </div>
     </div>
-  )
+  );
 }

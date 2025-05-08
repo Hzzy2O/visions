@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { cn } from "@/lib/utils";
 import { generateColorFromAddress } from "@/lib/utils";
@@ -11,15 +10,15 @@ export interface AddressDisplayProps {
   address: string;
 
   // Display options
-  textDisplayMode?: 'short' | 'medium' | 'full';
-  variant?: 'default' | 'compact';
+  textDisplayMode?: "short" | "medium" | "full";
+  variant?: "default" | "compact";
   showCopyButton?: boolean;
   showExplorerLink?: boolean;
   showAvatar?: boolean;
-  avatarShape?: 'circle' | 'square';
+  avatarShape?: "circle" | "square";
 
   // Style properties
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   className?: string;
 
   // Explorer options
@@ -31,24 +30,24 @@ export interface AddressDisplayProps {
 
 export const formatAddress = (
   address: string,
-  displayMode: 'short' | 'medium' | 'full'
+  displayMode: "short" | "medium" | "full",
 ): string => {
-  if (!address) return '';
+  if (!address) return "";
 
   // Make sure address is a string and remove any leading/trailing whitespace
   const cleanAddress = address.toString().trim();
 
   // Ensure address has the 0x prefix
-  const normalizedAddress = cleanAddress.startsWith('0x')
+  const normalizedAddress = cleanAddress.startsWith("0x")
     ? cleanAddress
     : `0x${cleanAddress}`;
 
-  if (displayMode === 'full') return normalizedAddress;
+  if (displayMode === "full") return normalizedAddress;
 
-  if (displayMode === 'medium') {
+  if (displayMode === "medium") {
     if (normalizedAddress.length <= 20) return normalizedAddress;
     return `${normalizedAddress.slice(0, 10)}...${normalizedAddress.slice(
-      -10
+      -10,
     )}`;
   }
 
@@ -62,15 +61,15 @@ export const AddressDisplay = ({
   address,
 
   // Display options
-  textDisplayMode = 'short',
-  variant = 'default',
+  textDisplayMode = "short",
+  variant = "default",
   showCopyButton = true,
   showExplorerLink = true,
   showAvatar = true,
-  avatarShape = 'circle',
+  avatarShape = "circle",
 
   // Style properties
-  size = 'md',
+  size = "md",
   className,
 
   // Explorer options
@@ -87,16 +86,16 @@ export const AddressDisplay = ({
 
   // Size mappings
   const sizeClasses = {
-    sm: 'text-xs h-7',
-    md: 'text-sm h-8',
-    lg: 'text-base h-9',
+    sm: "text-xs h-7",
+    md: "text-sm h-8",
+    lg: "text-base h-9",
   };
-  
+
   // Avatar size mappings
   const avatarSizeClasses = {
-    sm: 'w-5 h-5',
-    md: 'w-6 h-6',
-    lg: 'w-7 h-7',
+    sm: "w-5 h-5",
+    md: "w-6 h-6",
+    lg: "w-7 h-7",
   };
 
   // Ensure we have a valid address
@@ -104,9 +103,9 @@ export const AddressDisplay = ({
     return (
       <div
         className={cn(
-          'inline-flex items-center text-gray-400 rounded-md bg-gray-100 dark:bg-gray-800 px-3',
+          "inline-flex items-center text-gray-400 rounded-md bg-gray-100 dark:bg-gray-800 px-3",
           sizeClasses[size],
-          className
+          className,
         )}
       >
         Invalid address
@@ -133,27 +132,27 @@ export const AddressDisplay = ({
       onClick();
       return;
     }
-    
+
     if (!showExplorerLink) return;
-    
+
     // Get the clean address without 0x prefix
-    const addressWithoutPrefix = address.toString().replace(/^0x/, '');
-    const networkType = network === 'mainnet' ? 'mainnet' : 'testnet';
+    const addressWithoutPrefix = address.toString().replace(/^0x/, "");
+    const networkType = network === "mainnet" ? "mainnet" : "testnet";
 
     // Format the URL using SuiScan format
     const suiscanUrl =
       explorerUrl ||
       `https://suiscan.xyz/${networkType}/account/${addressWithoutPrefix}`;
 
-    window.open(suiscanUrl, '_blank');
+    window.open(suiscanUrl, "_blank");
   };
 
   // Get button size based on overall size
   const getButtonSize = (): number => {
     switch (size) {
-      case 'sm':
+      case "sm":
         return 14;
-      case 'lg':
+      case "lg":
         return 18;
       default:
         return 16;
@@ -161,46 +160,44 @@ export const AddressDisplay = ({
   };
 
   const buttonSize = getButtonSize();
-  
+
   // Display address - either formatted or full on hover
-  const displayAddress = showFullAddress ? address.toString() : formattedAddress;
+  const displayAddress = showFullAddress
+    ? address.toString()
+    : formattedAddress;
 
   // Generate avatar gradient
   const avatarBackground = generateColorFromAddress(address);
-  
+
   // Avatar shape class
-  const avatarShapeClass = avatarShape === 'circle' ? 'rounded-full' : 'rounded-md';
+  const avatarShapeClass =
+    avatarShape === "circle" ? "rounded-full" : "rounded-md";
 
   return (
     <div
       className={cn(
-        'inline-flex items-center rounded-md gap-2 bg-gray-100 dark:bg-gray-800 px-3 shadow-sm',
-        showExplorerLink ? 'cursor-pointer' : '',
+        "inline-flex items-center rounded-md gap-2 bg-gray-100 dark:bg-gray-800 px-3 shadow-sm",
+        showExplorerLink ? "cursor-pointer" : "",
         sizeClasses[size],
-        variant === 'compact' && 'p-1 pl-2',
-        className
+        variant === "compact" && "p-1 pl-2",
+        className,
       )}
       onClick={handleExplorerClick}
-      onMouseEnter={() => setShowFullAddress(true)}
-      onMouseLeave={() => setShowFullAddress(false)}
     >
       {showAvatar && (
-        <div 
+        <div
           className={cn(
             avatarShapeClass,
             avatarSizeClasses[size],
-            "overflow-hidden"
+            "overflow-hidden",
           )}
           style={{ background: avatarBackground }}
           aria-hidden="true"
         />
       )}
-      
+
       <span
-        className={cn(
-          "font-mono text-gray-800 dark:text-gray-200",
-          showExplorerLink && "hover:underline"
-        )}
+        className={cn("font-mono dark:text-gray-200")}
         title={address.toString()}
       >
         {displayAddress}

@@ -83,14 +83,14 @@ export const ConnectButton = ({
   const buttonContent = isConnected ? (
     <div className="flex items-center">
       {showAddress && walletAddress ? (
-        <AddressDisplay 
+        <AddressDisplay
           address={walletAddress}
           textDisplayMode="short"
           showCopyButton={false}
           showExplorerLink={false}
-          showAvatar={!avatarUrl && !walletIcon}
+          showAvatar={true}
           size="sm"
-          className="bg-transparent shadow-none px-0"
+          className="bg-transparent shadow-none px-0 color-white"
         />
       ) : (
         <div className="flex items-center">
@@ -196,7 +196,7 @@ export const ConnectButton = ({
                 {walletAddress && (
                   <AddressDisplay
                     address={walletAddress}
-                    textDisplayMode="medium"
+                    textDisplayMode="short"
                     showCopyButton={false}
                     showExplorerLink={false}
                     showAvatar={false}
