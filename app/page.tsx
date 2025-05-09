@@ -3,6 +3,7 @@
 
 import { useRef, useEffect, useState, Suspense, lazy } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import ContentFilter, {
   type FilterType,
@@ -124,9 +125,11 @@ export default function Home() {
               creators and enthusiasts worldwide
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <div className="rounded-full bg-white/80 px-4 py-2 font-medium hover:bg-white transition-colors">
-                Discover Creators
-              </div>
+              <Link href="/creator/setup">
+                <div className="rounded-full bg-white/80 px-4 py-2 font-medium hover:bg-white transition-colors">
+                  Become Creator
+                </div>
+              </Link>
             </div>
           </div>
           <div className="relative h-64 md:h-80 animate-fade-in-delayed">

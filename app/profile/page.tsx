@@ -28,6 +28,11 @@ export default function ProfilePage() {
         {/* Cover Image */}
         <div className="relative h-48 w-full overflow-hidden rounded-xl">
           <Image src={profile.coverImage || "/placeholder.svg?key=cover"} alt="Cover" fill className="object-cover" />
+          {profile.isCreator && (
+            <div className="absolute top-4 right-4 rounded-full bg-blue px-3 py-1 text-sm font-medium text-white">
+              Creator
+            </div>
+          )}
         </div>
 
         {/* Profile Info and Avatar */}

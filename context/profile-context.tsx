@@ -9,6 +9,8 @@ export interface UserProfile {
   bio: string
   coverImage?: string
   website?: string
+  isCreator?: boolean
+  subscriptionPrice?: number
   social?: {
     twitter?: string
     instagram?: string
@@ -22,6 +24,7 @@ const defaultProfile: UserProfile = {
   avatar: "/abstract-profile.png",
   bio: "Digital creator passionate about Web3 technology and visual storytelling.",
   coverImage: "/placeholder.svg?key=cover-image",
+  isCreator: false,
   social: {
     twitter: "creator",
     instagram: "creator",
