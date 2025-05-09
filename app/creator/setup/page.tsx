@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -13,24 +12,24 @@ import { useProfile } from "@/context/profile-context";
 export default function CreatorSetupPage() {
   const router = useRouter();
   const { profile, updateProfile } = useProfile();
-  
+
   const [formData, setFormData] = useState({
     creatorName: profile.name || "",
     creatorBio: profile.bio || "",
-    subscriptionPrice: "5.0",
+    subscriptionPrice: "0",
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     // Update the profile with creator information
     updateProfile({
       ...profile,
@@ -39,23 +38,23 @@ export default function CreatorSetupPage() {
       isCreator: true,
       subscriptionPrice: parseFloat(formData.subscriptionPrice),
     });
-    
+
     // Simulate API call delay
     setTimeout(() => {
       setIsSubmitting(false);
       router.push("/profile");
     }, 1000);
   };
-  
+
   return (
     <div className="container max-w-3xl py-8 md:py-12">
       <h1 className="mb-8 text-3xl font-bold">Become a Creator</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="space-y-6 rounded-xl border bg-white p-6 shadow-sm">
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Creator Information</h2>
-            
+
             <div className="space-y-2">
               <Label htmlFor="creatorName">Creator Name</Label>
               <Input
@@ -67,7 +66,7 @@ export default function CreatorSetupPage() {
                 placeholder="Your creator name"
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="creatorBio">Creator Bio</Label>
               <Textarea
@@ -80,9 +79,11 @@ export default function CreatorSetupPage() {
                 required
               />
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="subscriptionPrice">Monthly Subscription Price (SUI)</Label>
+              <Label htmlFor="subscriptionPrice">
+                Monthly Subscription Price (SUI)
+              </Label>
               <div className="flex items-center">
                 <Input
                   id="subscriptionPrice"
@@ -100,18 +101,27 @@ export default function CreatorSetupPage() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                Set the monthly price subscribers will pay to access your content
+                Set the monthly price subscribers will pay to access your
+                content
               </p>
             </div>
           </div>
         </div>
-        
+
         {/* Action Buttons */}
         <div className="flex justify-between">
-          <Button type="button" variant="outline" onClick={() => router.push("/")}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.push("/")}
+          >
             Cancel
           </Button>
-          <Button type="submit" className="bg-blue text-white hover:bg-blue/90" disabled={isSubmitting}>
+          <Button
+            type="submit"
+            className="bg-blue text-white hover:bg-blue/90"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Creating..." : "Create Creator Profile"}
           </Button>
         </div>
