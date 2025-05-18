@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect, forwardRef } from "react";
 // Import local components being wrapped
 import { ConnectButton } from "./ConnectButton";
 import ConnectWalletModal from "./ConnectModal";
@@ -9,6 +9,10 @@ import {
   useDisconnectWallet,
   useCurrentWallet, // Use useCurrentWallet for simpler access to connected wallet info
 } from "@mysten/dapp-kit";
+
+export interface ConnectWalletModalRef {
+  resetModal: () => void;
+}
 
 /**
  * Connector Component
@@ -56,6 +60,14 @@ export const Connector = () => {
     setIsModalOpen(false);
   }, []);
 
+  const connectModalRef = useRef<{ resetModal: () => void }>(null);
+
+  useEffect(() => {
+    if (!isConnected) {
+      connectModalRef.current?.resetModal();
+    }
+  }, [isConnected]);
+
   return (
     <>
       {/* Render the button, passing state and callbacks */}
@@ -65,7 +77,10 @@ export const Connector = () => {
         walletName={currentWallet?.name} // Pass name from current wallet
         avatarUrl={currentWallet?.icon} // Pass icon as avatar URL (if compatible)
         onConnect={handleConnectClick} // Opens modal when disconnected
-        onDisconnect={handleDisconnect} // Handles disconnect from button dropdown
+        onDisconnect={() => {
+          handleDisconnect();
+          connectModalRef.current?.resetModal();
+        }} // Handles disconnect from button dropdown
         // Add other props like balance display if needed, deriving data similarly
         // balance={...}
         // showBalance={true}
@@ -77,6 +92,7 @@ export const Connector = () => {
         onClose={handleModalClose}
         // Pass the connect handler if the modal needs it
         // onConnect={handleModalConnect} // Assuming modal provides the selected wallet identifier
+        ref={connectModalRef}
       />
     </>
   );

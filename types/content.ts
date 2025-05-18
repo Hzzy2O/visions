@@ -12,14 +12,16 @@ export interface Content {
   type: ContentType
   title: string
   description?: string
-  creator: Creator
-  thumbnail: string
+  creatorId: string
+  createdAt: string
+  walrusReference: string
+  previewReference?: string
+  thumbnail?: string
   locked?: boolean
   price?: string
   likes?: number
   comments?: number
   shares?: number
-  createdAt?: string
   // Image content specific
   fullImage?: string
   // Article content specific

@@ -7,7 +7,6 @@
 module visions_contract::content {
     use sui::event;
     
-    use visions_contract::user::{Self, User};
     use std::string::{Self, String};
     use visions_contract::creator::{Self, Creator};
     use visions_contract::subscription::{Self, Subscription};
@@ -28,10 +27,12 @@ module visions_contract::content {
     // Content object representing creator's premium content
     public struct Content has key, store {
         id: UID,
+        creator_addr: address,
         creator_id: ID,
         title: String,
         description: Option<String>,
         walrus_reference: String, // Reference to encrypted content in Walrus
+        preview_reference: String, // 新增字段
         created_at: u64,
         content_type: String,     // Type of content (image, video, etc.)
     }
@@ -47,20 +48,22 @@ module visions_contract::content {
     // Create premium content
     public entry fun create_premium_content(
         creator: &mut Creator,
-        user: &User,
+        user_addr: address,
         title: vector<u8>,
         description: vector<u8>,
         walrus_reference: vector<u8>,
+        preview_reference: vector<u8>,
         content_type: vector<u8>,
         ctx: &mut TxContext
     ) {
         // Verify caller is the creator
-        assert!(user::is_owner(user, tx_context::sender(ctx)), ENotAuthorized);
-        assert!(object::id(user) == creator::get_user_id(creator), ENotAuthorized);
+        assert!(user_addr == tx_context::sender(ctx), ENotAuthorized);
+        assert!(user_addr == creator::get_user_addr(creator), ENotAuthorized);
         
         // Validate inputs
         assert!(std::vector::length(&title) > 0, EInvalidTitle);
         assert!(std::vector::length(&walrus_reference) > 0, EInvalidWalrusReference);
+        assert!(std::vector::length(&preview_reference) > 0, EInvalidWalrusReference);
         assert!(
             std::vector::length(&content_type) > 0 && 
             is_valid_content_type(content_type),
@@ -70,6 +73,7 @@ module visions_contract::content {
         // Create content object
         let content = Content {
             id: object::new(ctx),
+            creator_addr: creator::get_user_addr(creator),
             creator_id: object::id(creator),
             title: string::utf8(title),
             description: if (std::vector::length(&description) > 0) {
@@ -78,6 +82,7 @@ module visions_contract::content {
                 option::none()
             },
             walrus_reference: string::utf8(walrus_reference),
+            preview_reference: string::utf8(preview_reference), // 新增
             created_at: tx_context::epoch(ctx),
             content_type: string::utf8(content_type),
         };
@@ -100,16 +105,16 @@ module visions_contract::content {
     // Update content metadata
     public entry fun update_content_metadata(
         content: &mut Content,
-        user: &User,
+        user_addr: address,
         creator: &Creator,
         new_title: vector<u8>,
         new_description: vector<u8>,
         ctx: &mut TxContext
     ) {
         // Verify caller is the creator
-        assert!(user::is_owner(user, tx_context::sender(ctx)), ENotAuthorized);
-        assert!(object::id(user) == creator::get_user_id(creator), ENotAuthorized);
-        assert!(object::id(creator) == content.creator_id, ENotAuthorized);
+        assert!(user_addr == tx_context::sender(ctx), ENotAuthorized);
+        assert!(user_addr == creator::get_user_addr(creator), ENotAuthorized);
+        assert!(creator::get_user_addr(creator) == content.creator_addr, ENotAuthorized);
         
         // Update title if provided
         if (std::vector::length(&new_title) > 0) {
@@ -154,14 +159,13 @@ module visions_contract::content {
     
     public fun check_content_access(
         content: &Content,
-        user_id: ID,
+        user_addr: address,
         subscription: &Subscription,
         clock: &Clock
     ): bool {
-        // Check if user has an active subscription to this creator
         subscription::has_active_subscription(
-            user_id,
-            content.creator_id,
+            user_addr,
+            content.creator_addr,
             subscription,
             clock
         )

@@ -5,6 +5,7 @@ import "./globals.css";
 import Header from "@/components/header";
 import WalletProvider from "@/context/wallet-context";
 import { ProfileProvider } from "@/context/profile-context";
+import { Providers } from "./providers";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,12 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <WalletProvider>
-          <ProfileProvider>
-            <Header />
-            <main className="min-h-screen">{children}</main>
-          </ProfileProvider>
-        </WalletProvider>
+        <Providers>
+          <Header />
+          <main className="min-h-screen">{children}</main>
+        </Providers>
       </body>
     </html>
   );

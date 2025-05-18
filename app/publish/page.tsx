@@ -11,16 +11,25 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Upload, X, FileText, ImageIcon, Loader } from "lucide-react";
-import { useWallet } from "@/context/wallet-context";
 import type { ContentType } from "@/types/content";
 import { useCurrentAccount, useSignAndExecuteTransaction, useSuiClient } from "@mysten/dapp-kit";
 import { Transaction } from "@mysten/sui/transactions";
 import { getAllowlistedKeyServers, SealClient } from "@mysten/seal";
 import { fromHex, toHex } from "@mysten/sui/utils";
+import { network, networkConfig, suiClient } from '@/contracts';
+import { useTransactionNotifier } from "@/components/ui/TransactionNotifier";
+
+const packageId = networkConfig[network].variables.package;
+
+const DEFAULT_PUBLISHER_URL = "https://publisher.walrus-testnet.walrus.space/v1";
+const DEFAULT_AGGREGATOR_URL = "https://aggregator.walrus-testnet.walrus.space/v1";
 
 export default function PublishPage() {
   const router = useRouter();
   const account = useCurrentAccount();
+  const { showTxStatus } = useTransactionNotifier();
+
+
   const [contentType, setContentType] = useState<ContentType>("image");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -28,122 +37,97 @@ export default function PublishPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [articleContent, setArticleContent] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
-  const [audioUrl, setAudioUrl] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [uploadedBlobId, setUploadedBlobId] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string>("service1");
+  const [creatorId, setCreatorId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewBlobId, setPreviewBlobId] = useState<string | null>(null);
   
   // Configuration for Walrus upload
   const NUM_EPOCH = 1;
-  const packageId = "0x1"; // Replace with your actual package ID
   const policyObject = ""; // Replace with your policy object
   const cap_id = ""; // Replace with your cap ID
-  const moduleName = "content_module"; // Replace with your module name
   
   const suiClient = useSuiClient();
-  const SUI_VIEW_TX_URL = `https://suiscan.xyz/testnet/tx`;
-  const SUI_VIEW_OBJECT_URL = `https://suiscan.xyz/testnet/object`;
   
   const client = new SealClient({
     suiClient,
-    serverObjectIds: getAllowlistedKeyServers("testnet"),
+    serverObjectIds: getAllowlistedKeyServers(network),
     verifyKeyServers: false,
   });
   
   const { mutate: signAndExecute } = useSignAndExecuteTransaction();
   
-  const services = [
-    {
-      id: "service1",
-      name: "walrus.space",
-      publisherUrl: "/publisher1",
-      aggregatorUrl: "/aggregator1",
-    },
-    {
-      id: "service2",
-      name: "staketab.org",
-      publisherUrl: "/publisher2",
-      aggregatorUrl: "/aggregator2",
-    },
-    {
-      id: "service3",
-      name: "redundex.com",
-      publisherUrl: "/publisher3",
-      aggregatorUrl: "/aggregator3",
-    },
-    {
-      id: "service4",
-      name: "nodes.guru",
-      publisherUrl: "/publisher4",
-      aggregatorUrl: "/aggregator4",
-    },
-    {
-      id: "service5",
-      name: "banansen.dev",
-      publisherUrl: "/publisher5",
-      aggregatorUrl: "/aggregator5",
-    },
-    {
-      id: "service6",
-      name: "everstake.one",
-      publisherUrl: "/publisher6",
-      aggregatorUrl: "/aggregator6",
-    },
-  ];
-
-  const getAggregatorUrl = (path: string): string => {
-    const service = services.find((s) => s.id === selectedService);
-    const cleanPath = path.replace(/^\/+/, "").replace(/^v1\//, "");
-    return `${service?.aggregatorUrl}/v1/${cleanPath}`;
+  const storeBlob = async (encryptedData: Uint8Array) => {
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        encryptedData: Array.from(encryptedData),
+        numEpochs: NUM_EPOCH,
+        send_object_to: account?.address || "",
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert("Error publishing the blob on Walrus: " + err.error);
+      throw new Error(err.error);
+    }
+    return res.json();
   };
 
-  const getPublisherUrl = (path: string): string => {
-    const service = services.find((s) => s.id === selectedService);
-    const cleanPath = path.replace(/^\/+/, "").replace(/^v1\//, "");
-    return `${service?.publisherUrl}/v1/${cleanPath}`;
-  };
-
-  const storeBlob = (encryptedData: Uint8Array) => {
-    return fetch(`${getPublisherUrl(`/v1/blobs?epochs=${NUM_EPOCH}`)}`, {
-      method: "PUT",
-      body: encryptedData,
-    }).then((response) => {
-      if (response.status === 200) {
-        return response.json().then((info) => {
-          return { info };
-        });
-      } else {
-        alert(
-          "Error publishing the blob on Walrus, please select a different Walrus service."
-        );
-        setIsUploading(false);
-        throw new Error("Something went wrong when storing the blob!");
-      }
+  const generateBlurredPreview = async (imageFile: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      img.onload = function () {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = 320;
+        const height = 180;
+        canvas.width = width;
+        canvas.height = height;
+        if (!ctx) return reject('No canvas context');
+        ctx.drawImage(img, 0, 0, width, height);
+        ctx.filter = 'blur(12px)';
+        ctx.drawImage(canvas, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        resolve(dataUrl);
+      };
+      img.onerror = reject;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(imageFile);
     });
   };
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Max 10 MiB size
       if (file.size > 10 * 1024 * 1024) {
         alert("File size must be less than 10 MiB");
         return;
       }
-      // Check if file is an image
       if (!file.type.startsWith("image/")) {
         alert("Only image files are allowed");
         return;
       }
-      
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = (event) => {
         setSelectedImage(event.target?.result as string);
       };
       reader.readAsDataURL(file);
+      try {
+        const previewBase64 = await generateBlurredPreview(file);
+        setPreviewImage(previewBase64);
+        setPreviewBlobId(null);
+      } catch (err) {
+        setPreviewImage(null);
+        setPreviewBlobId(null);
+      }
     }
   };
 
@@ -151,86 +135,166 @@ export default function PublishPage() {
     setSelectedImage(null);
     setImageFile(null);
     setUploadedBlobId(null);
+    setPreviewImage(null);
+    setPreviewBlobId(null);
   };
   
-  const uploadToWalrus = async () => {
-    if (!imageFile) return;
-    
-    setIsUploading(true);
-    try {
-      const reader = new FileReader();
-      
-      reader.onload = async function(event) {
-        if (event.target && event.target.result) {
-          const result = event.target.result;
-          if (result instanceof ArrayBuffer) {
-            const nonce = crypto.getRandomValues(new Uint8Array(5));
-            const policyObjectBytes = fromHex(policyObject || "0x1"); // Fallback if not set
-            const id = toHex(new Uint8Array([...policyObjectBytes, ...nonce]));
-            
-            const { encryptedObject: encryptedBytes } = await client.encrypt({
-              threshold: 2,
-              packageId,
-              id,
-              data: new Uint8Array(result),
-            });
-            
-            const storageInfo = await storeBlob(encryptedBytes);
-            console.log("Storage info:", storageInfo);
-            
-            // Extract blobId
-            let blobId = "";
-            if ("alreadyCertified" in storageInfo.info) {
-              blobId = storageInfo.info.alreadyCertified.blobId;
-            } else if ("newlyCreated" in storageInfo.info) {
-              blobId = storageInfo.info.newlyCreated.blobObject.blobId;
-            }
-            
-            setUploadedBlobId(blobId);
-            setIsUploading(false);
-          } else {
-            console.error("Unexpected result type:", typeof result);
-            setIsUploading(false);
-          }
-        }
-      };
-      
-      reader.readAsArrayBuffer(imageFile);
-    } catch (error) {
-      console.error("Error uploading to Walrus:", error);
-      setIsUploading(false);
+  const associateToSuiObject = (blobId: string, previewBlobId: string): Promise<string> => {
+    if (!blobId || !previewBlobId || !creatorId || !account?.address) {
+      throw new Error("Missing required parameters");
     }
-  };
-  
-  const associateToSuiObject = async () => {
-    if (!uploadedBlobId) return;
-    
-    const tx = new Transaction();
-    tx.moveCall({
-      target: `${packageId}::${moduleName}::publish`,
-      arguments: [
-        tx.object(policyObject),
-        tx.object(cap_id),
-        tx.pure.string(uploadedBlobId),
-      ],
-    });
-
-    tx.setGasBudget(10000000);
-    signAndExecute(
-      {
-        transaction: tx,
-      },
-      {
-        onSuccess: async (result) => {
-          console.log("Transaction result:", result);
-          alert("Content published successfully!");
+    return new Promise<string>((resolve, reject) => {
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${packageId}::content::create_premium_content`,
+        arguments: [
+          tx.object(creatorId),
+          tx.object(account.address),
+          tx.pure.string(title),
+          tx.pure.string(description),
+          tx.pure.string(blobId),
+          tx.pure.string(previewBlobId),
+          tx.pure.string(contentType),
+        ],
+      });
+      tx.setGasBudget(10000000);
+      signAndExecute(
+        { transaction: tx },
+        {
+          onSuccess: async (result: any) => {
+            try {
+              const digest = result?.digest;
+              let newObjectId = "";
+              if (digest) {
+                await suiClient.waitForTransaction({ digest });
+                const txDetails = await suiClient.getTransactionBlock({
+                  digest,
+                  options: {
+                    showObjectChanges: true,
+                    showEvents: true,
+                  },
+                });
+                if (Array.isArray(txDetails.objectChanges)) {
+                  const createdObj: any = txDetails.objectChanges.find((c: any) => c.type === "created");
+                  if (createdObj && createdObj.objectId) {
+                    newObjectId = createdObj.objectId;
+                  }
+                }
+              }
+              showTxStatus("completed", "Content published successfully!", blobId);
+              resolve(newObjectId);
+            } catch (e) {
+              console.log("e", e);
+              showTxStatus("failed", "Failed to fetch transaction details.", blobId);
+              resolve("");
+            }
+          },
+          onError: (error) => {
+            console.error("Transaction error:", error);
+            showTxStatus("failed", "Failed to publish content. Please try again.", blobId);
+            reject(error);
+          }
         },
-        onError: (error) => {
-          console.error("Transaction error:", error);
-          alert("Failed to publish content. Please try again.");
-        }
-      },
-    );
+      );
+    });
+  };
+
+  // base64转Blob工具
+  function base64ToBlob(base64: string, mime = 'image/jpeg'): Blob {
+    const byteString = atob(base64.split(',')[1]);
+    const ab = new ArrayBuffer(byteString.length);
+    const ia = new Uint8Array(ab);
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i);
+    }
+    return new Blob([ab], { type: mime });
+  }
+
+  // 预览图上传（a.html方式，Blob直传）
+  const uploadPreviewImage = async (base64: string): Promise<string> => {
+    const blob = base64ToBlob(base64, 'image/jpeg');
+    const res = await fetch(`/api/upload?epochs=1&send_object_to=${account?.address || ''}`, {
+      method: 'POST',
+      body: blob,
+    });
+    const data = await res.json();
+    if (!res.ok || !data.info) {
+      throw new Error(data.error || 'Failed to upload preview image');
+    }
+    return data.info?.newlyCreated
+      ? data.info.newlyCreated.blobObject.blobId
+      : data.info.alreadyCertified.blobId;
+  };
+
+  const encryptAndUploadToWalrus = async (data: Uint8Array): Promise<string> => {
+    if (!creatorId) {
+      throw new Error("Cannot upload content: Creator ID not found");
+    }
+    
+    // 查询创建者对应的服务ID
+    try {
+      const events = await suiClient.queryEvents({
+        query: { MoveEventType: `${packageId}::subscription::ServiceCreatedEvent` },
+        limit: 100,
+      });
+      // 找到 creator_id 匹配的 service
+      const matched = events.data.find(e => (e.parsedJson as any)?.creator_id === creatorId);
+      const serviceId = (matched?.parsedJson as any)?.service_id || null;
+      
+      if (!serviceId) {
+        console.warn("未找到对应服务ID，将使用默认前缀");
+      }
+      
+      // 使用服务ID作为前缀(如果有)，否则使用默认值
+      const nonce = crypto.getRandomValues(new Uint8Array(5));
+      const prefix = serviceId ? fromHex(serviceId) : fromHex("0x1");
+      const id = toHex(new Uint8Array([...prefix, ...nonce]));
+      
+      console.log("[Debug] 加密ID:", id);
+      console.log("[Debug] 使用前缀:", serviceId || "0x1");
+      
+      showTxStatus("submitting", "Encrypting and uploading to Walrus, please wait...", id);
+      const { encryptedObject: encryptedBytes } = await client.encrypt({
+        threshold: 2,
+        packageId,
+        id,
+        data,
+      });
+      const storageInfo = await storeBlob(encryptedBytes);
+      let blobId = "";
+      if ("alreadyCertified" in storageInfo.info) {
+        blobId = storageInfo.info.alreadyCertified.blobId;
+      } else if ("newlyCreated" in storageInfo.info) {
+        blobId = storageInfo.info.newlyCreated.blobObject.blobId;
+      }
+      setUploadedBlobId(blobId);
+      showTxStatus("completed", "Uploaded to Walrus successfully! Blob ID: " + blobId, id);
+      return blobId;
+    } catch (err) {
+      console.error("获取服务ID失败", err);
+      // 回退到原始方法
+      const nonce = crypto.getRandomValues(new Uint8Array(5));
+      const policyObjectBytes = fromHex(policyObject || "0x1");
+      const id = toHex(new Uint8Array([...policyObjectBytes, ...nonce]));
+      
+      showTxStatus("submitting", "Encrypting and uploading to Walrus, please wait...", id);
+      const { encryptedObject: encryptedBytes } = await client.encrypt({
+        threshold: 2,
+        packageId,
+        id,
+        data,
+      });
+      const storageInfo = await storeBlob(encryptedBytes);
+      let blobId = "";
+      if ("alreadyCertified" in storageInfo.info) {
+        blobId = storageInfo.info.alreadyCertified.blobId;
+      } else if ("newlyCreated" in storageInfo.info) {
+        blobId = storageInfo.info.newlyCreated.blobObject.blobId;
+      }
+      setUploadedBlobId(blobId);
+      showTxStatus("completed", "Uploaded to Walrus successfully! Blob ID: " + blobId, id);
+      return blobId;
+    }
   };
 
   const handlePublish = async () => {
@@ -239,33 +303,60 @@ export default function PublishPage() {
       return;
     }
 
-    if (!title || !description || !price) {
+    if (!title || !description) {
       alert("Please fill in all required fields");
       return;
     }
 
-    // Validate required fields based on content type
     if (contentType === "image") {
       if (!selectedImage) {
         alert("Please upload an image");
         return;
       }
-      
-      if (!uploadedBlobId) {
-        // Need to upload to Walrus first
-        await uploadToWalrus();
-        return;
-      }
-      
-      // Now associate the uploaded blob with a Sui object
+      setIsPublishing(true);
+      let blobId = uploadedBlobId || "";
+      let previewId = previewBlobId || "";
       try {
-        setIsPublishing(true);
-        await associateToSuiObject();
+        // 1. 上传加密原图
+        if (!uploadedBlobId) {
+          blobId = await new Promise<string>((resolve, reject) => {
+            if (!imageFile) return reject(new Error("No image file"));
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+              if (event.target && event.target.result && event.target.result instanceof ArrayBuffer) {
+                try {
+                  const arr = new Uint8Array(event.target.result);
+                  const id = await encryptAndUploadToWalrus(arr);
+                  resolve(id);
+                } catch (err) {
+                  reject(err);
+                }
+              } else {
+                reject(new Error("File read error"));
+              }
+            };
+            reader.readAsArrayBuffer(imageFile);
+          });
+          setUploadedBlobId(blobId);
+        }
+        // 2. 上传预览图（Blob直传）
+        if (!previewBlobId && previewImage) {
+          previewId = await uploadPreviewImage(previewImage);
+          setPreviewBlobId(previewId);
+        }
+        if (!previewId) {
+          throw new Error("Preview image upload failed");
+        }
+        showTxStatus("processing", "Publishing to Sui, associating your content on chain...", blobId);
+        const objectId = await associateToSuiObject(blobId, previewId);
         setIsPublishing(false);
-        router.push("/profile");
+        if (objectId) {
+          router.push(`/content/${objectId}`);
+        } 
       } catch (error) {
         console.error("Error publishing:", error);
         setIsPublishing(false);
+        showTxStatus("failed", "Failed to publish. Please try again. [error]", blobId);
         alert("Failed to publish. Please try again.");
       }
     } else if (contentType === "article") {
@@ -273,13 +364,27 @@ export default function PublishPage() {
         alert("Please enter article content");
         return;
       }
-      
-      // For non-image content, use the original flow for now
       setIsPublishing(true);
-      setTimeout(() => {
+      let blobId = uploadedBlobId || "";
+      try {
+        if (!uploadedBlobId) {
+          const encoder = new TextEncoder();
+          const articleBytes = encoder.encode(articleContent);
+          blobId = await encryptAndUploadToWalrus(articleBytes);
+        }
+        const objectId = await associateToSuiObject(blobId, "");
         setIsPublishing(false);
-        router.push("/profile");
-      }, 2000);
+        if (objectId) {
+          router.push(`/content/${objectId}`);
+        } else {
+          router.push("/content");
+        }
+      } catch (error) {
+        console.error("Error publishing article:", error);
+        setIsPublishing(false);
+        showTxStatus("failed", "Failed to publish article. Please try again. [error]", blobId);
+        alert("Failed to publish. Please try again.");
+      }
     }
   };
 
@@ -289,23 +394,6 @@ export default function PublishPage() {
         return (
           <div className="space-y-4">
             <Label>Upload Image</Label>
-            
-            <div className="flex flex-col space-y-2 mb-4">
-              <Label>Select Walrus service:</Label>
-              <select
-                value={selectedService}
-                onChange={(e) => setSelectedService(e.target.value)}
-                className="w-full rounded-md border border-input p-2"
-                aria-label="Select Walrus service"
-              >
-                {services.map((service) => (
-                  <option key={service.id} value={service.id}>
-                    {service.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
             {selectedImage ? (
               <div className="space-y-4">
                 <div className="relative aspect-video w-full overflow-hidden rounded-lg">
@@ -324,24 +412,24 @@ export default function PublishPage() {
                     <X className="h-4 w-4" />
                   </Button>
                 </div>
-                
-                {!uploadedBlobId && (
-                  <Button 
-                    onClick={uploadToWalrus} 
-                    disabled={isUploading || !imageFile} 
-                    className="w-full"
-                  >
-                    {isUploading ? (
-                      <>
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        Encrypting & Uploading...
-                      </>
-                    ) : (
-                      "Encrypt & Upload to Walrus"
+                {previewImage && (
+                  <div className="mt-2">
+                    <Label>Preview (Blurred)</Label>
+                    <div className="relative aspect-video w-48 overflow-hidden rounded-lg border border-dashed border-gray-300">
+                      <Image
+                        src={previewImage}
+                        alt="Preview image"
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    {previewBlobId && (
+                      <div className="p-2 bg-blue-50 text-blue-700 rounded-md mt-2 text-xs">
+                        ✓ Preview uploaded! Blob ID: {previewBlobId.substring(0, 8)}...
+                      </div>
                     )}
-                  </Button>
+                  </div>
                 )}
-                
                 {uploadedBlobId && (
                   <div className="p-3 bg-green-50 text-green-700 rounded-md">
                     ✓ Uploaded successfully! Blob ID: {uploadedBlobId.substring(0, 8)}...
@@ -397,6 +485,26 @@ export default function PublishPage() {
         return null;
     }
   };
+
+  useEffect(() => {
+    const fetchCreatorId = async () => {
+      if (!account?.address) return;
+      const objects = await suiClient.getOwnedObjects({
+        owner: account.address,
+        filter: {
+          StructType: `${packageId}::creator::Creator`,
+        },
+        options: { showContent: true },
+      });
+      if (objects.data.length > 0) {
+        console.log("Creator ID:", objects.data[0]);
+        setCreatorId(objects.data[0].data?.objectId || null);
+      } else {
+        setCreatorId(null);
+      }
+    };
+    fetchCreatorId();
+  }, [account, suiClient]);
 
   return (
     <div className="container max-w-3xl py-8 md:py-12">
@@ -457,20 +565,6 @@ export default function PublishPage() {
           />
         </div>
 
-        {/* Price */}
-        <div className="space-y-2">
-          <Label htmlFor="price">Subscription Price (SUI)</Label>
-          <Input
-            id="price"
-            type="number"
-            placeholder="0.05"
-            step="0.01"
-            min="0"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-          />
-        </div>
-
         {/* Render fields based on content type */}
         {renderContentTypeFields()}
 
@@ -478,13 +572,9 @@ export default function PublishPage() {
         <Button
           className="w-full bg-blue text-white hover:bg-blue/90"
           onClick={handlePublish}
-          disabled={isPublishing || (contentType === "image" && !uploadedBlobId && selectedImage)}
+          disabled={Boolean(isPublishing) || (contentType === "image" && (!selectedImage || !imageFile))}
         >
-          {isPublishing ? "Publishing..." : (
-            contentType === "image" && selectedImage && !uploadedBlobId 
-              ? "Upload to Walrus First" 
-              : "Publish Content"
-          )}
+          {isPublishing ? "Publishing..." : "Publish Content"}
         </Button>
       </div>
     </div>

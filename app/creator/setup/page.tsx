@@ -1,49 +1,111 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useProfile } from "@/context/profile-context";
+import { Transaction } from '@mysten/sui/transactions';
+import { useSignAndExecuteTransaction, useCurrentAccount } from '@mysten/dapp-kit';
+import { networkConfig, network, suiClient } from '@/contracts';
+import { normalizeSuiAddress } from "@mysten/sui/utils";
+import { useTransactionNotifier } from '@/components/ui/TransactionNotifier';
 
 export default function CreatorSetupPage() {
   const router = useRouter();
-  const { profile, updateProfile } = useProfile();
+
+  // 获取链上 packageId
+  const packageId = networkConfig[network].variables.package;
+  // 获取钱包当前账户
+  const account = useCurrentAccount();
+  // 获取链上交易签名与执行能力
+  const { mutateAsync: signAndExecute } = useSignAndExecuteTransaction();
+  const { showTxStatus } = useTransactionNotifier();
 
   const [formData, setFormData] = useState({
-    creatorName: profile.name || "",
-    creatorBio: profile.bio || "",
+    creatorName: "",
+    creatorBio: "",
     subscriptionPrice: "0",
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (e) => {
+  // 明确类型声明，修复 linter 报错
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  // 页面加载时检查是否已有 creator 对象
+  useEffect(() => {
+    const checkCreator = async () => {
+      if (!account?.address) return;
+      try {
+        // 查询当前地址是否拥有 Creator 对象
+        const objects = await suiClient.getOwnedObjects({
+          owner: account.address,
+          filter: {
+            StructType: `${packageId}::creator::Creator`,
+          },
+          options: { showContent: true },
+        });
+        if (objects.data && objects.data.length > 0) {
+          // 已有 creator，直接跳转
+          router.push("/profile/" + account.address);
+        }
+      } catch (e) {
+        // 查询失败时忽略，继续展示表单
+      }
+    };
+    checkCreator();
+  }, [account?.address, packageId, router]);
+
+  // 表单提交，链上调用
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Update the profile with creator information
-    updateProfile({
-      ...profile,
-      name: formData.creatorName,
-      bio: formData.creatorBio,
-      isCreator: true,
-      subscriptionPrice: parseFloat(formData.subscriptionPrice),
-    });
-
-    // Simulate API call delay
-    setTimeout(() => {
+    if (!account?.address) {
+      alert("Please connect your wallet first");
       setIsSubmitting(false);
-      router.push("/profile");
-    }, 1000);
+      return;
+    }
+
+    try {
+      // 构建链上交易
+      const tx = new Transaction();
+      tx.moveCall({
+        target: `${packageId}::creator::become_creator`,
+        arguments: [
+          tx.object(normalizeSuiAddress(account.address)), // address，直接字符串
+          tx.pure.string(formData.creatorName), // vector<u8>
+          tx.pure.string(formData.creatorBio), // vector<u8>
+        ],
+      });
+
+      // 发起链上交易
+      await signAndExecute({ transaction: tx},
+        {
+          onSuccess: async (result) => {
+            showTxStatus('processing', 'Submitting transaction...', result.digest);
+            await suiClient.waitForTransaction({ digest: result.digest });
+            const txDetails = await suiClient.getTransactionBlock({ digest: result.digest });
+            console.log('txDetails', txDetails);
+            showTxStatus('completed', 'Subscribed successfully!', result.digest);
+            router.push("/profile");
+          },
+          onError: () => {
+            showTxStatus('failed', 'Subscribe failed.');
+          },
+        }
+      );
+
+    } catch (err: any) {
+      alert("Transaction failed: " + (err?.message || err));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -80,43 +142,11 @@ export default function CreatorSetupPage() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="subscriptionPrice">
-                Monthly Subscription Price (SUI)
-              </Label>
-              <div className="flex items-center">
-                <Input
-                  id="subscriptionPrice"
-                  name="subscriptionPrice"
-                  type="number"
-                  min="0.1"
-                  step="0.1"
-                  value={formData.subscriptionPrice}
-                  onChange={handleInputChange}
-                  required
-                  className="rounded-r-none"
-                />
-                <div className="flex items-center justify-center rounded-r-md border border-l-0 bg-muted px-3 py-2">
-                  SUI
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Set the monthly price subscribers will pay to access your
-                content
-              </p>
-            </div>
           </div>
         </div>
 
         {/* Action Buttons */}
         <div className="flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push("/")}
-          >
-            Cancel
-          </Button>
           <Button
             type="submit"
             className="bg-blue text-white hover:bg-blue/90"

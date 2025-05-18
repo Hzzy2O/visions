@@ -1,8 +1,9 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { SealClient, SessionKey, NoAccessError, EncryptedObject } from '@mysten/seal';
 import { SuiClient } from '@mysten/sui/client';
 import { Transaction } from '@mysten/sui/transactions';
+import React from 'react';
+
+export type MoveCallConstructor = (tx: Transaction, id: string) => void;
 
 export const downloadAndDecrypt = async (
   blobIds: string[],
@@ -11,13 +12,19 @@ export const downloadAndDecrypt = async (
   sealClient: SealClient,
   moveCallConstructor: (tx: Transaction, id: string) => void,
   setError: (error: string | null) => void,
+  setDecryptedFileUrls: (urls: string[]) => void,
+  setIsDialogOpen: (open: boolean) => void,
+  setReloadKey: (updater: (prev: number) => number) => void,
 ) => {
+  const aggregators = ['aggregator1', 'aggregator2', 'aggregator3', 'aggregator4', 'aggregator5', 'aggregator6'];
+  // First, download all files in parallel (ignore errors)
   const downloadResults = await Promise.all(
     blobIds.map(async (blobId) => {
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
-        const aggregatorUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
+        const randomAggregator = aggregators[Math.floor(Math.random() * aggregators.length)];
+        const aggregatorUrl = `/${randomAggregator}/v1/blobs/${blobId}`;
         const response = await fetch(aggregatorUrl, { signal: controller.signal });
         clearTimeout(timeout);
         if (!response.ok) {
@@ -92,28 +99,22 @@ export const downloadAndDecrypt = async (
     }
   }
 
-  return decryptedFileUrls;
+  if (decryptedFileUrls.length > 0) {
+    setDecryptedFileUrls(decryptedFileUrls);
+    setIsDialogOpen(true);
+    setReloadKey((prev) => prev + 1);
+  }
 };
 
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-export const generateColorFromAddress = (address: string) => {
-  const stringToHash = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    return hash;
-  };
-
-  const hash1 = stringToHash(`color1-${address}`);
-  const hash2 = stringToHash(`color2-${address}`);
-
-  const color1 = `#${((hash1 >>> 0) & 0xffffff).toString(16).padStart(6, "0")}`;
-  const color2 = `#${((hash2 >>> 0) & 0xffffff).toString(16).padStart(6, "0")}`;
-
-  return `linear-gradient(45deg, ${color1}, ${color2})`;
+export const getObjectExplorerLink = (id: string): React.ReactElement => {
+  return React.createElement(
+    'a',
+    {
+      href: `https://testnet.suivision.xyz/object/${id}`,
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      style: { textDecoration: 'underline' },
+    },
+    id.slice(0, 10) + '...',
+  );
 };
