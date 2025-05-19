@@ -317,11 +317,11 @@ const TransactionNotification: React.FC<TransactionNotificationProps> = ({ messa
   const iconClass = `${textColor} w-5 h-5 ${type === 'processing' ? 'animate-spin' : ''}`;
 
   return (
-    <div className={`${bgColor} ${borderColor} border rounded-lg shadow-lg p-4 flex items-center justify-between max-w-full`}>
+    <div className={`${bgColor} ${borderColor} border rounded-lg shadow-lg p-4 flex items-center justify-between max-w-full overflow-hidden`}>
       <div className="flex items-center space-x-3">
         <Icon className={iconClass} />
-        <div>
-          <p className={`${textColor} font-medium`}>{message}</p>
+        <div className="max-w-xs">
+          <p className={`${textColor} font-medium truncate`} title={message}>{message}</p>
           {txHash && (
             <a 
               href={`https://explorer.sui.io/txblock/${txHash}`} 

@@ -342,7 +342,7 @@ export default function ContentDetail() {
               <div className="text-center py-6">
                 <p className="mb-4">You need to subscribe to read this article</p>
                 <Button 
-                  onClick={() => router.push(`/creator/${content.creatorAddr}`)} 
+                  onClick={() => router.push(`/profile/${content.creatorAddr}`)} 
                   className="bg-green-600 text-white hover:bg-green-700"
                 >
                   Subscribe to Creator
@@ -443,7 +443,7 @@ export default function ContentDetail() {
               className="flex items-center gap-2 ml-4"
               onClick={async () => {
                   // Share creator's profile link instead of content link
-  const creatorProfileUrl = `${window.location.origin}/creator/${content.creatorAddr}`;
+  const creatorProfileUrl = `${window.location.origin}/profile/${content.creatorAddr}`;
   await navigator.clipboard.writeText(creatorProfileUrl);
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);
@@ -464,7 +464,7 @@ export default function ContentDetail() {
           <div className="mt-4 flex items-center gap-4">
             <span className="font-bold">Creator:</span>
             <Link 
-              href={`/creator/${content.creatorAddr}`}
+              href={`/profile/${content.creatorAddr}`}
               className="text-sm text-blue-600 hover:underline"
             >
               {formatAddress(content.creatorAddr)}
