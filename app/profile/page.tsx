@@ -11,10 +11,16 @@ export default function ProfilePage() {
   useEffect(() => {
     if (account?.address) {
       router.replace(`/profile/${account.address}`);
-    } else {
-      router.replace('/not-found');
     }
   }, [account?.address, router]);
+
+  if (!account?.address) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <button style={{ fontSize: 20, padding: '12px 32px' }}>Connect Wallet</button>
+      </div>
+    );
+  }
 
   return null;
 }
