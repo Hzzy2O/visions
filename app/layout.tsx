@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   title: "Web3 Content Platform",
   description: "Share your creative visual content",
   generator: "v0.dev",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
