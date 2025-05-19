@@ -21,7 +21,7 @@ function parseContentFields(fields: any) {
     id: fields.id?.id || "",
     creatorId: fields.creator_id || "",
     title: fields.title || "",
-    description: fields.description?.Some || "",
+    description: fields.description || "",
     walrusReference: fields.walrus_reference || "",
     previewReference: fields.preview_reference || "", // Preview image reference (if any)
     serviceId: fields.service_id || "", // Service ID
@@ -283,6 +283,7 @@ export default function ContentDetail() {
       setDecrypting(false);
     }
   }
+  console.log(content);
 
   // Render content based on type
   const renderContentByType = () => {
