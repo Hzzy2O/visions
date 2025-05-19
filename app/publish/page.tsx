@@ -76,20 +76,29 @@ export default function PublishPage() {
     return res.json();
   };
 
+  // 优化后的预览图生成函数，边缘模糊更自然
   const generateBlurredPreview = async (imageFile: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const img = new window.Image();
       img.onload = function () {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
         const width = 320;
         const height = 180;
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
         canvas.width = width;
         canvas.height = height;
         if (!ctx) return reject('No canvas context');
-        ctx.drawImage(img, 0, 0, width, height);
-        ctx.filter = 'blur(12px)';
-        ctx.drawImage(canvas, 0, 0, width, height);
+        ctx.filter = 'blur(15px)';
+        const scale = 1.1;
+        const sw = img.width * scale;
+        const sh = img.height * scale;
+        const sx = (img.width - sw) / 2;
+        const sy = (img.height - sh) / 2;
+        ctx.drawImage(
+          img,
+          sx, sy, sw, sh, // 源图像区域
+          0, 0, width, height // 目标canvas区域
+        );
         const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
         resolve(dataUrl);
       };

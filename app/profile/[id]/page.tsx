@@ -110,7 +110,6 @@ export default function ProfilePage() {
         const list = (objects.data || []).map((obj: any) => {
           const content = obj.data?.content?.fields;
           if (!content) return null;
-          if (content.creator_id !== creatorAddr) return null;
           return {
             id: obj.data?.objectId,
             title: content.title,
@@ -122,6 +121,7 @@ export default function ProfilePage() {
             creatorAddr ,
           };
         }).filter(Boolean);
+        console.log(list);
         setContents(list);
       } catch (e) {
         setContents([]);

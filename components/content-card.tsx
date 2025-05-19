@@ -4,6 +4,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Lock, FileText, ImageIcon } from "lucide-react"
 import type { Content } from "@/types/content"
+import { useRouter } from "next/navigation"
 
 type ContentCardProps = Content
 
@@ -13,11 +14,14 @@ export default function ContentCard(props: ContentCardProps) {
     type,
     title,
     creatorId,
+    creatorAddr,
     walrusReference,
     previewReference,
     locked = false,
     description
   } = props
+
+  const router = useRouter()
 
   const getTypeIcon = () => {
     switch (type) {
@@ -78,6 +82,17 @@ export default function ContentCard(props: ContentCardProps) {
               {description}
             </span>
           </div>
+          {creatorAddr && (
+            <button
+              className="mt-2 text-xs text-blue-600 underline hover:text-blue-800"
+              onClick={e => {
+                e.preventDefault()
+                router.push(`/profile/${creatorAddr}`)
+              }}
+            >
+              View Creator
+            </button>
+          )}
         </div>
       </div>
     </Link>

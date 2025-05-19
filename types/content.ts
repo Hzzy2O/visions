@@ -13,6 +13,7 @@ export interface Content {
   title: string
   description?: string
   creatorId: string
+  creatorAddr: string
   createdAt: string
   walrusReference: string
   previewReference?: string

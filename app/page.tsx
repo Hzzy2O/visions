@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useRef, useEffect, useState, Suspense, lazy } from "react";
+import { useRef, useEffect, useState, Suspense, lazy, RefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -9,7 +8,8 @@ import ContentFilter, {
   type FilterType,
   type SortType,
 } from "@/components/content-filter";
-import { contents } from "@/data/mock-data";
+import { suiClient, networkConfig, network } from "@/contracts";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGSAPAnimation, useStaggerAnimation, useParallaxEffect } from "@/hooks/use-gsap";
 import SectionDivider from "@/components/section-divider";
@@ -24,49 +24,94 @@ const ContentCard = dynamic(() => import("@/components/content-card"), {
 export default function Home() {
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [activeSort, setActiveSort] = useState<SortType>("latest");
-  const [filteredContents, setFilteredContents] = useState(contents);
+  const [contents, setContents] = useState<any[]>([]); // 链上内容数据
+  const [filteredContents, setFilteredContents] = useState<any[]>([]);
   const [isContentVisible, setIsContentVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // 新增 loading 状态
+  const router = useRouter();
 
   const heroSectionRef = useRef<HTMLDivElement>(null);
   const contentSectionRef = useRef<HTMLDivElement>(null);
   const contentGridRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
 
-  // Apply GSAP animations
-  const gsapCtx = useGSAPAnimation();
+  // 获取 packageId
+  const packageId = networkConfig[network].variables.package;
 
-  // Apply filters and sorting
+  // 拉取链上内容数据
+  useEffect(() => {
+    async function fetchContents() {
+      setIsLoading(true); // 开始加载
+      try {
+        // 1. 查询所有 ContentCreatedEvent 事件
+        const eventResp = await suiClient.queryEvents({
+          query: { MoveEventType: `${packageId}::content::ContentCreatedEvent` },
+          limit: 100,
+        });
+        const events = eventResp.data || [];
+        // 2. 批量获取内容对象详情
+        const contentIds = events.map((e: any) => e.parsedJson?.content_id).filter(Boolean);
+        const contentObjs = await Promise.all(
+          contentIds.map(async (id: string) => {
+            try {
+              const obj = await suiClient.getObject({
+                id,
+                options: { showContent: true },
+              });
+              return obj;
+            } catch {
+              return null;
+            }
+          })
+        );
+        // 3. 组装内容数据
+        const items = contentObjs.map((obj: any, idx: number) => {
+          if (!obj || !obj.data) return null;
+          const fields = obj.data.content?.fields || obj.data.fields;
+          const event = events[idx]?.parsedJson as any || {};
+          return {
+            id: obj.data.objectId,
+            type: event.content_type === "image" ? "image" : "article",
+            title: event.title || fields?.title || "",
+            description: fields?.description?.fields?.some || fields?.description || "",
+            creatorId: event.creator_id || fields?.creator_id || "",
+            creatorAddr: fields?.creator_addr || "",
+            createdAt: fields?.created_at ? new Date(Number(fields.created_at) * 1000).toISOString() : "",
+            walrusReference: fields?.walrus_reference || "",
+            previewReference: fields?.preview_reference || "",
+          };
+        }).filter(Boolean);
+        setContents(items);
+      } catch (e) {
+        setContents([]);
+      }
+      setIsLoading(false); // 加载结束
+    }
+    fetchContents();
+  }, [packageId]);
+
+  // 筛选与排序
   useEffect(() => {
     let result = [...contents];
-
-    // Apply type filter
     if (activeFilter !== "all") {
       result = result.filter((content) => content.type === activeFilter);
     }
-
-    // Apply sorting
     switch (activeSort) {
       case "latest":
-        result = result.sort(
-          (a, b) =>
-            new Date(b.createdAt || "").getTime() -
-            new Date(a.createdAt || "").getTime(),
-        );
+        result = result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         break;
       case "oldest":
-        result = result.sort(
-          (a, b) =>
-            new Date(a.createdAt || "").getTime() -
-            new Date(b.createdAt || "").getTime(),
-        );
+        result = result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
         break;
       case "popular":
-        result = result.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        // 如有 likes 字段可加排序
         break;
     }
-
     setFilteredContents(result);
-  }, [activeFilter, activeSort]);
+  }, [activeFilter, activeSort, contents]);
+
+  // Apply GSAP animations
+  const gsapCtx = useGSAPAnimation();
 
   // Use GSAP for section animations
   useEffect(() => {
@@ -92,7 +137,7 @@ export default function Home() {
   }, []);
 
   // Use staggered animation for content cards
-  useStaggerAnimation(contentGridRef, ".content-card-wrapper", {
+  useStaggerAnimation(contentGridRef as unknown as RefObject<HTMLElement>, ".content-card-wrapper", {
     staggerAmount: 0.1,
     animation: {
       fromVars: { opacity: 0, y: 50, scale: 0.9 },
@@ -105,7 +150,7 @@ export default function Home() {
   });
 
   // Apply parallax effect to title
-  useParallaxEffect(titleRef, {
+  useParallaxEffect(titleRef as unknown as RefObject<HTMLElement>, {
     speed: 0.3,
     direction: "up",
   });
@@ -136,7 +181,7 @@ export default function Home() {
             <div className="absolute -bottom-4 -right-4 h-full w-3/4 rounded-3xl bg-blue"></div>
             <div className="absolute -left-4 -top-4 h-full w-3/4 rounded-3xl bg-white"></div>
             <Image
-              src="/placeholder.svg?key=bkhoc"
+              src="/poster.png"
               alt="Creative Digital Art"
               fill
               className="rounded-3xl object-cover"
@@ -163,7 +208,7 @@ export default function Home() {
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeFilter + activeSort}
+            key={activeFilter + activeSort + (isLoading ? "-loading" : "-loaded")}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -171,7 +216,12 @@ export default function Home() {
             ref={contentGridRef}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8 content-grid"
           >
-            {filteredContents.length > 0 ? (
+            {isLoading ? (
+              // 加载中显示骨架屏
+              Array.from({ length: 6 }).map((_, idx) => (
+                <ContentCardSkeleton key={idx} />
+              ))
+            ) : filteredContents.length > 0 ? (
               <>
                 {filteredContents.map((content, index) => (
                   <motion.div
@@ -184,7 +234,7 @@ export default function Home() {
                     }}
                   >
                     <Suspense fallback={<ContentCardSkeleton />}>
-                      <ContentCard content={content} />
+                      <ContentCard {...content} />
                     </Suspense>
                   </motion.div>
                 ))}
